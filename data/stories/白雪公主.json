@@ -1,0 +1,34 @@
+{
+  "id": "tab4",
+  "name": "白雪公主",
+  "coverImg": "https://qianyedoufu.dpdns.org/白雪公主.jpg",
+  "story": {
+    "name": "",
+    "alias": "",
+    "background": "",
+    "startContent": "",
+    "coverImg": "https://qianyedoufu.dpdns.org/白雪公主.jpg"
+  },
+  "variable": {
+    "world": { "date": "", "position": "", "time": "" },
+    "write": { "stage": "", "next_stage": "阶段1" },
+    "user": {
+      "identity": "",
+      "gender": "",
+      "body_state": "",
+      "Inventory": {},
+      "surroundings": "",
+      "Psychological_description": ""
+    },
+    "剧情线": {},
+    "描写指导": {},
+    "背景信息": {
+      "地区": {
+        "未知地图": {
+          "描述": "尚未开拓之地...",
+          "民俗风情": {}
+        }
+      }
+    }
+  }
+}
