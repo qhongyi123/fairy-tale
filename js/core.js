@@ -45,7 +45,7 @@ var emptyTemplateInfo = {
     "story": { "name": "", "alias": "", "background": "", "startContent": "", "coverImg": "" },
     "variable": {
         "world": { "date": "", "position": "", "time": "" },
-        "write": { "stage": "", "next_stage": "阶段1" },
+        "write": { "stage": "阶段0", "next_stage": "阶段1", "next_next_stage": "阶段2" },
         "user": { "identity": "", "gender": "", "body_state": "", "Inventory": {}, "surroundings": "", "Psychological_description": "" },
         "剧情线": {},
         "描写指导": {},
