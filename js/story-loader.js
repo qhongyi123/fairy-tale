@@ -6,7 +6,7 @@ var STORY_MANIFEST = [
     { id: "tab7",  name: "小红帽",            file: "data/stories/小红帽.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab8",  name: "卖火柴的小女孩",    file: "data/stories/卖火柴的小女孩.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab9",  name: "糖果屋",            file: "data/stories/糖果屋.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
-    { id: "tab10", name: "皇帝的新装",        file: "data/stories/皇帝的新装.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
+    { id: "tab10", name: "小裁缝一次干七个！", file: "data/stories/小裁缝一次干七个！.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab11", name: "自定义开局",        file: null, headers: ["背景信息", "人物信息", "参数调整", "开始剧情"] },
     { id: "tab12", name: "自定义剧本",        file: null, headers: ["背景信息", "剧情线", "人物信息", "参数调整", "开始剧情"] }
 ];
