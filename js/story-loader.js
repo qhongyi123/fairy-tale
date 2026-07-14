@@ -336,16 +336,48 @@ window.switchStoryView = function(tabId, mode, btn) {
 
 function openTimelineOverlay() {
     __timelineAllOpen = false;
+    var overlay = document.getElementById('timeline-overlay');
     document.getElementById('timeline-expand-btn').textContent = '\u26F6 \u5168\u5F00';
     document.getElementById('timeline-init-screen').style.display = '';
     document.getElementById('timeline-canvas').style.display = 'none';
-    document.getElementById('timeline-overlay').classList.add('active');
+    overlay.classList.add('active');
     renderTimelineNodes();
+
+    // 请求浏览器全屏
+    var el = overlay;
+    if (el.requestFullscreen) {
+        el.requestFullscreen().catch(function() {});
+    } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+    } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+    }
 }
 
 window.closeTimeline = function() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
     document.getElementById('timeline-overlay').classList.remove('active');
 };
+
+// 监听 ESC 或系统退出全屏时同步关闭覆盖层
+document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        document.getElementById('timeline-overlay').classList.remove('active');
+    }
+});
+document.addEventListener('webkitfullscreenchange', function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        document.getElementById('timeline-overlay').classList.remove('active');
+    }
+});
 
 window.startTimeline = function() {
     document.getElementById('timeline-init-screen').style.display = 'none';
