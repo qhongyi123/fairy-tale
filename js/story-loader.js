@@ -126,7 +126,7 @@ async function initDynamicTabs() {
                 contentStr = infoIntroHTML + '<div class="data-block" style="border-bottom:none;"><div class="data-field-title">\uD83D\uDDFA\uFE0F 地域与风土物志</div><div data-region-container id="regions-' + tabId + '">' + regionsHTML + '</div><button class="add-region-btn custom-alert-btn" onclick="addNewRegion(\'' + tabId + '\')" style="margin-top:10px; width:100%; border-style:dashed; padding:8px;">+ 新 建 地 域 </button>' + presetBtnHTML + importBtnHTML + '</div>';
             }
             else if (h === "剧情线") {
-                contentStr = '<div class="data-block" style="border-bottom:1px dashed rgba(184, 134, 11, 0.3);"><div class="data-field-title">\uD83D\uDCDC 命途纠葛线索</div><ul style="padding-left:15px; color:var(--color-text-dark); margin-top:10px;" data-complex-dict="variable.剧情线">' + generateComplexStorylines(vd["剧情线"] || {}) + '</ul><div class="add-custom-btn" onclick="addNewStoryline(this, \'stage\')">+ 添加剧情阶段</div></div>' +
+                contentStr = '<div class="data-block" style="border-bottom:1px dashed rgba(184, 134, 11, 0.3);"><div class="data-field-title" style="display:flex; justify-content:space-between; align-items:center;"><span>\uD83D\uDCDC 剧情阶段一览</span><span style="font-size:0.75rem; font-weight:normal; display:flex; gap:4px;"><button class="view-mode-btn active" onclick="switchStoryView(\'' + tabId + '\',\'doc\',this)" style="padding:2px 6px; border:1px solid var(--color-primary-dark); border-radius:3px; background:var(--bg-content); color:var(--color-primary-dark); cursor:pointer; font-size:0.7rem;">\uD83D\uDCC4 文档流</button><button class="view-mode-btn" onclick="switchStoryView(\'' + tabId + '\',\'timeline\',this)" style="padding:2px 6px; border:1px solid var(--color-primary-dark); border-radius:3px; background:var(--bg-content); color:var(--color-primary-dark); cursor:pointer; font-size:0.7rem;">\uD83D\uDD17 脉络式</button></span></div><ul style="padding-left:15px; color:var(--color-text-dark); margin-top:10px;" data-complex-dict="variable.剧情线" data-tab-id="' + tabId + '">' + generateComplexStorylines(vd["剧情线"] || {}) + '</ul><div class="add-custom-btn" onclick="addNewStoryline(this, \'stage\')">+ 添加剧情阶段</div></div>' +
                              '<div class="data-block" style="border:none; margin-top:15px;"><div class="data-field-title">\u270D\uFE0F 笔触描写指导</div><ul style="padding-left:15px; color:var(--color-text-dark); margin-top:10px;" data-dict="variable.描写指导">' + generateStorylines(vd["描写指导"] || {}) + '</ul><div class="add-custom-btn" onclick="addNewStoryline(this, \'guide\')">+ 添加描写指导</div></div>';
             }
             else if (h === "人物信息") {
@@ -297,4 +297,139 @@ window.addEventListener('DOMContentLoaded', function() {
         });
         card.addEventListener('mouseleave', function() { previewContainer.classList.remove('active'); });
     });
+});
+
+// ===== 脉络式时间线系统 =====
+var __timelineTabId = '';
+var __timelineData = {};
+var __timelineAllOpen = false;
+
+window.switchStoryView = function(tabId, mode, btn) {
+    if (mode === 'timeline') {
+        var ul = document.querySelector('ul[data-tab-id="' + tabId + '"]');
+        if (!ul) return;
+        __timelineTabId = tabId;
+        __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
+        openTimelineOverlay();
+    }
+    var btns = btn.parentElement.querySelectorAll('.view-mode-btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+};
+
+function openTimelineOverlay() {
+    __timelineAllOpen = false;
+    document.getElementById('timeline-expand-btn').textContent = '\u26F6 \u5168\u5F00';
+    document.getElementById('timeline-init-screen').style.display = '';
+    document.getElementById('timeline-canvas').style.display = 'none';
+    document.getElementById('timeline-overlay').classList.add('active');
+    renderTimelineNodes();
+}
+
+window.closeTimeline = function() {
+    document.getElementById('timeline-overlay').classList.remove('active');
+};
+
+window.startTimeline = function() {
+    document.getElementById('timeline-init-screen').style.display = 'none';
+    document.getElementById('timeline-canvas').style.display = '';
+    renderTimelineNodes();
+};
+
+function renderTimelineNodes() {
+    var container = document.getElementById('timeline-nodes');
+    container.innerHTML = '';
+    var keys = Object.keys(__timelineData);
+    if (keys.length === 0) {
+        container.innerHTML = '<div style="color:var(--color-text-light); padding:40px; font-size:1.2rem;">暂无剧情阶段数据</div>';
+        return;
+    }
+
+    keys.forEach(function(key) {
+        var node = document.createElement('div');
+        node.className = 'timeline-node';
+        node.textContent = key;
+        node.addEventListener('click', function() {
+            showTimelinePopup(key, __timelineData[key]);
+        });
+        container.appendChild(node);
+    });
+
+    updateNodeVisibility();
+}
+
+function updateNodeVisibility() {
+    if (__timelineAllOpen) return;
+    var canvas = document.getElementById('timeline-canvas');
+    if (canvas.style.display === 'none') return;
+    var nodes = document.querySelectorAll('.timeline-node');
+    var canvasRect = canvas.getBoundingClientRect();
+    var centerX = canvasRect.left + canvasRect.width / 2;
+
+    nodes.forEach(function(node) {
+        var rect = node.getBoundingClientRect();
+        var nodeCenterX = rect.left + rect.width / 2;
+        var distance = Math.abs(nodeCenterX - centerX);
+        var threshold = canvasRect.width * 0.35;
+        if (distance > threshold) {
+            node.classList.add('shrunk');
+            node.classList.remove('expand-all');
+        } else {
+            node.classList.remove('shrunk');
+            node.classList.add('expand-all');
+        }
+    });
+}
+
+var __timelineScrollTimer = null;
+document.addEventListener('DOMContentLoaded', function() {
+    var canvas = document.getElementById('timeline-canvas');
+    if (canvas) {
+        canvas.addEventListener('scroll', function() {
+            if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
+            __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
+        });
+    }
+});
+
+window.toggleTimelineExpand = function() {
+    __timelineAllOpen = !__timelineAllOpen;
+    var btn = document.getElementById('timeline-expand-btn');
+    var nodes = document.querySelectorAll('.timeline-node');
+    if (__timelineAllOpen) {
+        btn.textContent = '\u26F6 \u6536\u8D77';
+        nodes.forEach(function(n) { n.classList.remove('shrunk'); n.classList.add('expand-all'); });
+    } else {
+        btn.textContent = '\u26F6 \u5168\u5F00';
+        nodes.forEach(function(n) { n.classList.remove('expand-all'); });
+        updateNodeVisibility();
+    }
+};
+
+window.showTimelinePopup = function(stageName, stageData) {
+    var popup = document.getElementById('timeline-popup-overlay');
+    var content = document.getElementById('timeline-popup-content');
+    var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0\u63CF\u8FF0';
+    var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
+    var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
+
+    content.innerHTML =
+        '<div class="timeline-popup-title">' + mtH(stageName) + '</div>' +
+        '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div>' + mtH(desc) + '</div></div>' +
+        '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div>' + mtH(cond) + '</div></div>' +
+        '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div>' + mtH(guide) + '</div></div>';
+    popup.classList.add('active');
+};
+
+window.closeTimelinePopup = function() {
+    document.getElementById('timeline-popup-overlay').classList.remove('active');
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    var popupOverlay = document.getElementById('timeline-popup-overlay');
+    if (popupOverlay) {
+        popupOverlay.addEventListener('click', function(e) {
+            if (e.target === popupOverlay) { closeTimelinePopup(); }
+        });
+    }
 });

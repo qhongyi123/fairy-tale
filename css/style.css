@@ -268,6 +268,7 @@ body {
 
 /* 数据块与卡片排版调整样式 */
 .data-field-title { color: var(--color-primary-dark); font-weight: bold; margin-bottom: 5px; font-size: 1.05rem; }
+.view-mode-btn.active { background: var(--color-primary-dark) !important; color: #fff !important; }
 .data-block { margin-bottom: 15px; border-bottom: 1px dashed rgba(184, 134, 11, 0.3); padding-bottom: 15px; }
 .data-block:last-child { border-bottom: none; }
 .data-story-text { padding: 8px 12px; background: rgba(212, 175, 55, 0.08); border-left: 3px solid var(--color-primary-dark); border-radius: 4px; margin-top: 5px; font-size: 0.95em;}
@@ -480,6 +481,145 @@ body {
     .preset-mid, .preset-right { flex: 1; border-right:none; padding: 6px; }
     .preset-item-card { padding: 6px; border-width: 1px; }
     .preset-right { border-top: 1px solid rgba(212,175,55,0.4); }
+}
+
+/* ============= 脉络式时间线 ============= */
+.timeline-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: var(--bg-body);
+    background-image: radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.1) 0%, transparent 50%);
+    z-index: 9999; display: none; flex-direction: column;
+}
+.timeline-overlay.active { display: flex; }
+
+.timeline-top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: rgba(44, 27, 77, 0.95);
+    border-bottom: 2px solid var(--color-primary-dark);
+    flex-shrink: 0;
+}
+.timeline-top-bar .timeline-title {
+    font-family: 'Ma Shan Zheng', cursive; font-size: 1.4rem;
+    color: var(--color-primary);
+}
+.timeline-top-bar button {
+    background: linear-gradient(135deg, var(--bg-card) 0%, #150824 100%);
+    border: 1px solid var(--color-primary); color: var(--color-primary);
+    padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    font-family: 'Noto Serif SC', serif; font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4); transition: all 0.2s;
+}
+.timeline-top-bar button:hover { filter: brightness(1.2); }
+.timeline-top-bar .timeline-close-btn { background: rgba(139, 43, 43, 0.3); border-color: rgba(200, 60, 60, 0.6); color: #fcc; }
+
+.timeline-init-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    color: var(--color-text-light);
+}
+.timeline-init-screen p { font-size: 1rem; opacity: 0.8; }
+.timeline-start-btn {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: #1a0f2e; font-family: 'Ma Shan Zheng', cursive; font-size: 1.6rem;
+    border: none; border-radius: 8px; padding: 14px 40px; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); transition: all 0.3s;
+}
+.timeline-start-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6); }
+
+.timeline-canvas {
+    flex: 1; overflow-x: auto; overflow-y: hidden;
+    position: relative; display: flex; align-items: center;
+    padding: 0 50vw;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    cursor: grab;
+}
+.timeline-canvas:active { cursor: grabbing; }
+.timeline-canvas::-webkit-scrollbar { height: 6px; }
+.timeline-canvas::-webkit-scrollbar-track { background: rgba(212,175,55,0.1); }
+.timeline-canvas::-webkit-scrollbar-thumb { background: var(--color-primary-dark); border-radius: 3px; }
+
+.timeline-track {
+    position: absolute; left: 0; right: 0; height: 100%;
+    display: flex; align-items: center;
+}
+
+.timeline-line {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 3px; background: linear-gradient(90deg, transparent 0%, var(--color-primary-dark) 10%, var(--color-primary) 50%, var(--color-primary-dark) 90%, transparent 100%);
+    transform: translateY(-50%);
+}
+
+.timeline-nodes {
+    display: flex; align-items: center; gap: 80px;
+    position: relative; z-index: 2;
+    min-width: max-content; padding: 0 40px;
+}
+
+.timeline-node {
+    position: relative; display: flex; align-items: center; justify-content: center;
+    min-width: 70px; height: 70px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, #150824 100%);
+    border: 2px solid var(--color-primary);
+    border-radius: 20px; color: var(--color-text-light);
+    cursor: pointer; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    font-family: 'Ma Shan Zheng', cursive; font-size: 0.9rem;
+    padding: 8px 12px; text-align: center; flex-shrink: 0;
+    white-space: nowrap;
+}
+.timeline-node:hover {
+    border-color: #fff; box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+    transform: translateY(-4px);
+}
+.timeline-node.shrunk {
+    border-radius: 50%; min-width: 40px; height: 40px;
+    padding: 0; font-size: 0; width: 40px;
+    opacity: 0.5; transform: scale(0.7);
+}
+.timeline-node.shrunk::after {
+    content: '\2726'; font-size: 1rem; color: var(--color-primary);
+}
+.timeline-node.expand-all {
+    border-radius: 12px; min-width: 70px; height: 70px;
+    padding: 8px 12px; font-size: 0.9rem; opacity: 1;
+    width: auto; transform: scale(1);
+}
+.timeline-node.expand-all::after { content: none; }
+
+.timeline-popup-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(26, 15, 46, 0.8); z-index: 10001;
+    display: none; justify-content: center; align-items: center;
+}
+.timeline-popup-overlay.active { display: flex; }
+
+.timeline-popup-box {
+    background: var(--bg-content);
+    background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
+    border: 3px solid var(--color-primary-dark); border-radius: 12px;
+    box-shadow: 0 15px 45px rgba(0,0,0,0.8);
+    padding: 25px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+    position: relative; color: var(--color-text-dark);
+}
+.timeline-popup-close {
+    position: absolute; top: 8px; right: 14px;
+    font-size: 1.4rem; cursor: pointer; color: var(--color-accent);
+    transition: color 0.2s;
+}
+.timeline-popup-close:hover { color: #cc0000; }
+.timeline-popup-title { font-family: 'Ma Shan Zheng', cursive; font-size: 1.3rem; color: var(--color-primary-dark); border-bottom: 2px dashed rgba(212,175,55,0.4); padding-bottom: 8px; margin-bottom: 15px; }
+.timeline-popup-field { margin-bottom: 12px; }
+.timeline-popup-field strong { color: var(--color-accent); display: block; margin-bottom: 4px; }
+.timeline-popup-field div { font-size: 0.9rem; line-height: 1.6; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .timeline-nodes { gap: 50px; }
+    .timeline-node { min-width: 55px; height: 55px; font-size: 0.75rem; padding: 4px 8px; }
+    .timeline-node.shrunk { min-width: 32px; height: 32px; width: 32px; }
+    .timeline-node.shrunk::after { font-size: 0.8rem; }
 }
 
 /* 强压控制多级UL列表不准内缩太长距离 */
