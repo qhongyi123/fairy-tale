@@ -303,18 +303,35 @@ window.addEventListener('DOMContentLoaded', function() {
 var __timelineTabId = '';
 var __timelineData = {};
 var __timelineAllOpen = false;
+var __savedSubPanels = {};
 
 window.switchStoryView = function(tabId, mode, btn) {
+    var subPanel = btn.closest('.sub-panel');
+    if (!subPanel) return;
+
+    // 同步按钮 active 状态
+    var allBtns = btn.parentElement.querySelectorAll('.view-mode-btn');
+    allBtns.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+
     if (mode === 'timeline') {
-        var ul = document.querySelector('ul[data-tab-id="' + tabId + '"]');
-        if (!ul) return;
+        // 保存原始内容并替换为"点击查看脉络式"
+        if (!__savedSubPanels[tabId]) {
+            __savedSubPanels[tabId] = subPanel.innerHTML;
+        }
         __timelineTabId = tabId;
         __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
-        openTimelineOverlay();
+        subPanel.innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:30px;">' +
+            '<p style="color:var(--color-accent); font-size:0.9rem; margin-bottom:16px;">横屏查看脉络效果更佳</p>' +
+            '<button onclick="openTimelineOverlay()" style="background:linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color:#1a0f2e; font-family:\'Ma Shan Zheng\',cursive; font-size:1.4rem; border:none; border-radius:8px; padding:14px 40px; cursor:pointer; box-shadow:0 4px 15px rgba(212,175,55,0.4); transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">\u2726 \u70B9\u51FB\u67E5\u770B\u8109\u7EDC \u2726</button>' +
+        '</div>';
+    } else {
+        // 恢复文档流原始内容
+        if (__savedSubPanels[tabId]) {
+            subPanel.innerHTML = __savedSubPanels[tabId];
+            delete __savedSubPanels[tabId];
+        }
     }
-    var btns = btn.parentElement.querySelectorAll('.view-mode-btn');
-    btns.forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
 };
 
 function openTimelineOverlay() {
