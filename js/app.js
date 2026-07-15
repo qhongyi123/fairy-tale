@@ -314,17 +314,12 @@ window.toggleEditMode = function(chkboxEl, tabId) {
 
     // 如果脉络式中有卡片打开且属于当前 tab，刷新卡片编辑状态
     if (typeof __timelineTabId !== 'undefined' && __timelineTabId === tabId &&
-        typeof __infoCardsStageName !== 'undefined' && __infoCardsStageName &&
-        typeof __timelineData !== 'undefined') {
-        var cards = document.querySelectorAll('.timeline-info-card');
-        var anyVisible = false;
-        cards.forEach(function(c) { if (c.style.display === 'block') anyVisible = true; });
-        if (anyVisible) {
-            var stageData = __timelineData[__infoCardsStageName];
-            if (stageData) {
-                window.showTimelinePopup(__infoCardsStageName, stageData);
+        typeof __cardSets !== 'undefined' && typeof __timelineData !== 'undefined') {
+        Object.keys(__cardSets).forEach(function(key) {
+            if (__timelineData[key]) {
+                window.showTimelinePopup(key, __timelineData[key]);
             }
-        }
+        });
     }
 };
 

@@ -363,10 +363,12 @@ function openTimelineOverlay() {
 }
 
 window.closeTimeline = function() {
-    if (__infoCardsDirty) {
+    var dirty = false;
+    Object.keys(__cardSets).forEach(function(k) { if (__cardSets[k].dirty) dirty = true; });
+    if (dirty) {
         if (!confirm('卡片中有未保存的修改，确定要退出脉络式吗？')) return;
     }
-    __infoCardsDirty = false;
+    closeInfoCards();
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         if (document.exitFullscreen) {
             document.exitFullscreen();
@@ -382,13 +384,13 @@ window.closeTimeline = function() {
 // 监听 ESC 或系统退出全屏时同步关闭覆盖层
 document.addEventListener('fullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        __infoCardsDirty = false;
+        closeInfoCards();
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
 document.addEventListener('webkitfullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        __infoCardsDirty = false;
+        closeInfoCards();
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
@@ -423,14 +425,11 @@ window.toggleTimelineEditMode = function(chkEl) {
     }
 
     // 如果当前有卡片打开，刷新为编辑模式
-    if (__infoCardsStageName && __timelineData[__infoCardsStageName]) {
-        var cards = document.querySelectorAll('.timeline-info-card');
-        var anyVisible = false;
-        cards.forEach(function(c) { if (c.style.display === 'block') anyVisible = true; });
-        if (anyVisible) {
-            window.showTimelinePopup(__infoCardsStageName, __timelineData[__infoCardsStageName]);
+    Object.keys(__cardSets).forEach(function(key) {
+        if (__timelineData[key]) {
+            window.showTimelinePopup(key, __timelineData[key]);
         }
-    }
+    });
 };
 
 // ===== 桌面端鼠标拖拽滚动 =====
@@ -542,178 +541,337 @@ window.toggleTimelineExpand = function() {
     }
 };
 
+var __cardSets = {};
 var __infoCardsDirty = false;
 var __infoCardsStageName = '';
 
+function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
+    var card = document.createElement('div');
+    card.className = 'timeline-info-card';
+    var hdr = document.createElement('div');
+    hdr.className = 'timeline-info-card-header';
+    hdr.textContent = label;
+    card.appendChild(hdr);
+    var bd = document.createElement('div');
+    bd.className = 'timeline-info-card-body';
+    if (isEdit) {
+        bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+    } else {
+        bd.textContent = content;
+    }
+    card.appendChild(bd);
+    card.onmousedown = function(e) { e.stopPropagation(); };
+    return card;
+}
+
+function _buildConnectorLine(x1, y1, x2, y2) {
+    var line = document.createElement('div');
+    line.className = 'timeline-connector-line';
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    line.style.left = x1 + 'px';
+    line.style.top  = y1 + 'px';
+    line.style.width = len + 'px';
+    line.style.transform = 'rotate(' + deg + 'deg) scaleX(0)';
+    return line;
+}
+
 window.showTimelinePopup = function(stageName, stageData) {
-    var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0';
-    var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
+    var desc  = (stageData && stageData['\u63CF\u8FF0'])     ? stageData['\u63CF\u8FF0']     : '\u65E0';
+    var cond  = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
     var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
 
     var tabEl = document.getElementById(__timelineTabId);
     var isEdit = tabEl && tabEl.classList.contains('is-edit-mode');
     __infoCardsStageName = stageName;
-    __infoCardsDirty = false;
 
-    var cardDesc  = document.getElementById('info-card-desc');
-    var cardCond  = document.getElementById('info-card-cond');
-    var cardGuide = document.getElementById('info-card-guide');
-    var allCards = [cardDesc, cardCond, cardGuide];
+    // 如果该节点的卡片已激活，不做任何事
+    if (__cardSets[stageName] && __cardSets[stageName].cards[0].style.display === 'block' &&
+        !__cardSets[stageName].cards[0].classList.contains('dimmed')) return;
 
-    if (isEdit) {
-        cardDesc.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="desc" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + desc + '</div>';
-        cardCond.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="cond" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + cond + '</div>';
-        cardGuide.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="guide" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + guide + '</div>';
-    } else {
-        cardDesc.querySelector('.timeline-info-card-body').textContent = desc;
-        cardCond.querySelector('.timeline-info-card-body').textContent = cond;
-        cardGuide.querySelector('.timeline-info-card-body').textContent = guide;
-    }
-
-    var nodes = document.querySelectorAll('.timeline-node');
+    var canvas = document.getElementById('timeline-canvas');
     var targetNode = null;
-    nodes.forEach(function(n) {
+    document.querySelectorAll('.timeline-node').forEach(function(n) {
         if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
     });
     if (!targetNode) return;
 
-    var canvas = document.getElementById('timeline-canvas');
     var nodeRect = targetNode.getBoundingClientRect();
     var canvasRect = canvas.getBoundingClientRect();
     var scrollLeft = canvas.scrollLeft;
 
     var nodeX = nodeRect.left - canvasRect.left + scrollLeft;
     var nodeY = nodeRect.top - canvasRect.top;
-    var nodeW = nodeRect.width;
-    var nodeH = nodeRect.height;
+    var nodeW = nodeRect.width, nodeH = nodeRect.height;
+    var nodeCX = nodeX + nodeW / 2;
 
-    var cardW = 210;
-    var cardH = 130;
-    var gap = 16;
-    var margin = 20;
+    var cardW = 210, cardH = 130, gap = 16, margin = 20;
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
-
     var cardTop = nodeY - cardH - margin;
-    var placeBelow = (cardTop < 10);
-    if (placeBelow) {
-        cardTop = nodeY + nodeH + margin;
+    var placeBelow = cardTop < 10;
+    if (placeBelow) cardTop = nodeY + nodeH + margin;
+
+    // 变暗所有已有的卡片组
+    Object.keys(__cardSets).forEach(function(k) {
+        var s = __cardSets[k];
+        s.cards.forEach(function(c) { c.classList.add('dimmed'); c.classList.remove('show'); });
+        s.lines.forEach(function(l) { l.classList.remove('show'); });
+        if (s.xBtn) s.xBtn.classList.remove('show');
+    });
+
+    // 如果这组卡片已存在，直接变亮并重定位
+    if (__cardSets[stageName]) {
+        var set = __cardSets[stageName];
+        var cardCenters = [
+            { x: startX + cardW/2,      y: cardTop + cardH },
+            { x: startX + cardW + gap + cardW/2, y: cardTop + cardH },
+            { x: startX + (cardW + gap)*2 + cardW/2, y: cardTop + cardH }
+        ];
+        set.cards.forEach(function(c, i) {
+            var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
+            c.style.left = cx + 'px';
+            c.style.top = cardTop + 'px';
+            c.style.display = 'block';
+            c.classList.remove('dimmed');
+            void c.offsetHeight;
+        });
+        set.lines.forEach(function(l, i) {
+            var cc = cardCenters[i];
+            var nx = placeBelow ? nodeCX : nodeCX;
+            var ny = placeBelow ? (nodeY + nodeH) : nodeY;
+            var dx = cc.x - nx, dy = cc.y - ny;
+            l.style.left = nx + 'px';
+            l.style.top  = ny + 'px';
+            l.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
+            l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg) scaleX(0)';
+        });
+        // 重定位 X 按钮
+        if (set.xBtn) {
+            var midCC2 = cardCenters[1];
+            var midNX2 = nodeCX, midNY2 = placeBelow ? (nodeY + nodeH) : nodeY;
+            var midX2 = (midNX2 + midCC2.x) / 2, midY2 = (midNY2 + midCC2.y) / 2;
+            set.xBtn.style.left = (midX2 - 11) + 'px';
+            set.xBtn.style.top  = (midY2 - 11) + 'px';
+        }
+        void set.cards[0].offsetHeight;
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                set.cards.forEach(function(c) { c.classList.add('show'); });
+                set.lines.forEach(function(l) { l.classList.add('show'); });
+                if (set.xBtn) set.xBtn.classList.add('show');
+            });
+        });
+        set.placeBelow = placeBelow;
+        set.dirty = false;
+        __infoCardsDirty = false;
+
+        // 更新编辑模式
+        if (isEdit !== set.isEdit) {
+            set.isEdit = isEdit;
+            set.cards.forEach(function(c, i) {
+                var fieldName = i === 0 ? 'desc' : (i === 1 ? 'cond' : 'guide');
+                var content = i === 0 ? desc : (i === 1 ? cond : guide);
+                var bd = c.querySelector('.timeline-info-card-body');
+                if (isEdit) {
+                    bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+                } else {
+                    bd.textContent = content;
+                }
+            });
+        }
+        _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow);
+        return;
     }
 
-    var positions = [
-        { el: cardDesc,  left: startX },
-        { el: cardCond,  left: startX + cardW + gap },
-        { el: cardGuide, left: startX + (cardW + gap) * 2 }
+    // 新建卡片和连线
+    var cardCenters = [
+        { x: startX + cardW/2,      y: cardTop + cardH },
+        { x: startX + cardW + gap + cardW/2, y: cardTop + cardH },
+        { x: startX + (cardW + gap)*2 + cardW/2, y: cardTop + cardH }
+    ];
+    var newCards = [
+        _buildTimelineCard('\u63CF\u8FF0', desc, isEdit, 'desc', stageName),
+        _buildTimelineCard('\u89E6\u53D1\u6761\u4EF6', cond, isEdit, 'cond', stageName),
+        _buildTimelineCard('\u9636\u6BB5\u6307\u5BFC', guide, isEdit, 'guide', stageName)
     ];
 
-    allCards.forEach(function(c) {
-        c.classList.remove('show');
+    var newLines = [];
+    cardCenters.forEach(function(cc) {
+        var nx = nodeCX;
+        var ny = placeBelow ? (nodeY + nodeH) : nodeY;
+        var l = _buildConnectorLine(nx, ny, cc.x, cc.y);
+        canvas.appendChild(l);
+        newLines.push(l);
     });
 
-    positions.forEach(function(pos) {
-        var card = pos.el;
-        card.style.left = pos.left + 'px';
-        card.style.top = cardTop + 'px';
-        card.style.width = cardW + 'px';
-        card.style.display = 'block';
+    var minX = 10, maxX = canvas.scrollWidth - totalW - 10;
+    if (startX < minX) { var sh = minX - startX; startX += sh; cardCenters.forEach(function(cc) { cc.x += sh; }); }
+    else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardCenters.forEach(function(cc) { cc.x -= sh; }); }
 
-        // 阻止卡片上的拖拽事件冒泡到画布
-        card.onmousedown = function(e) { e.stopPropagation(); };
+    newCards.forEach(function(c, i) {
+        var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
+        c.style.left = cx + 'px';
+        c.style.top = cardTop + 'px';
+        c.style.width = cardW + 'px';
+        c.style.display = 'block';
+        canvas.appendChild(c);
     });
 
-    var minX = 10;
-    var maxX = canvas.scrollWidth - totalW - 10;
-    if (startX < minX) {
-        var shift = minX - startX;
-        positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) + shift) + 'px'; });
-    } else if (startX > maxX) {
-        var shift = startX - maxX;
-        positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) - shift) + 'px'; });
-    }
+    // 重算连线（可能因溢出调整了位置）
+    newLines.forEach(function(l, i) {
+        var cc = cardCenters[i];
+        var nx = nodeCX;
+        var ny = placeBelow ? (nodeY + nodeH) : nodeY;
+        var dx = cc.x - nx, dy = cc.y - ny;
+        l.style.left = nx + 'px';
+        l.style.top  = ny + 'px';
+        l.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
+        l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg) scaleX(0)';
+    });
 
-    void cardDesc.offsetHeight;
+    // X 关闭按钮：放在中间连线的中点
+    var midCC = cardCenters[1];
+    var midNX = nodeCX, midNY = placeBelow ? (nodeY + nodeH) : nodeY;
+    var midX = (midNX + midCC.x) / 2, midY = (midNY + midCC.y) / 2;
+    var xBtn = document.createElement('div');
+    xBtn.className = 'timeline-close-x';
+    xBtn.textContent = '\u2715';
+    xBtn.title = '\u5173\u95ED\u8BE5\u8282\u70B9\u5361\u7247';
+    xBtn.style.left = (midX - 11) + 'px';
+    xBtn.style.top  = (midY - 11) + 'px';
+    xBtn.onclick = function(e) { e.stopPropagation(); _closeOneCardSet(stageName); };
+    xBtn.onmousedown = function(e) { e.stopPropagation(); };
+    canvas.appendChild(xBtn);
+
+    __cardSets[stageName] = {
+        cards: newCards, lines: newLines, xBtn: xBtn,
+        stageName: stageName, isEdit: isEdit,
+        dirty: false, placeBelow: placeBelow
+    };
+    __infoCardsDirty = false;
+
+    void newCards[0].offsetHeight;
     requestAnimationFrame(function() {
         requestAnimationFrame(function() {
-            allCards.forEach(function(c) { c.classList.add('show'); });
+            newCards.forEach(function(c) { c.classList.add('show'); });
+            newLines.forEach(function(l) { l.classList.add('show'); });
+            xBtn.classList.add('show');
         });
     });
 
+    _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow);
+};
+
+function _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow) {
     var saveBar = document.getElementById('timeline-info-savebar');
     if (!saveBar) {
         saveBar = document.createElement('div');
         saveBar.id = 'timeline-info-savebar';
         saveBar.className = 'timeline-info-savebar';
-        saveBar.innerHTML = '<button onclick="saveInfoCardEdit(\'' + stageName + '\')">\u2727 \u4FDD\u5B58</button>';
-        canvas.appendChild(saveBar);
-    } else {
-        saveBar.querySelector('button').setAttribute('onclick', 'saveInfoCardEdit(\'' + stageName + '\')');
+        saveBar.innerHTML = '<button onclick="saveInfoCardEdit()">\u2727 \u4FDD\u5B58</button>';
+        document.getElementById('timeline-canvas').appendChild(saveBar);
+        saveBar.onmousedown = function(e) { e.stopPropagation(); };
     }
-
     if (isEdit) {
         saveBar.classList.add('show');
         saveBar.style.left = (startX + totalW - 70) + 'px';
         saveBar.style.top = (placeBelow ? cardTop + cardH + 8 : cardTop - 36) + 'px';
-        saveBar.onmousedown = function(e) { e.stopPropagation(); };
     } else {
         saveBar.classList.remove('show');
     }
-};
+}
+
+function _closeOneCardSet(stageName) {
+    var set = __cardSets[stageName];
+    if (!set) return;
+    if (set.dirty) {
+        if (!confirm('\u8BE5\u8282\u70B9\u6709\u672A\u4FDD\u5B58\u7684\u4FEE\u6539\uFF0C\u786E\u5B9A\u5173\u95ED\u5417\uFF1F')) return;
+    }
+    set.cards.forEach(function(c) { c.remove(); });
+    set.lines.forEach(function(l) { l.remove(); });
+    if (set.xBtn) set.xBtn.remove();
+    delete __cardSets[stageName];
+
+    if (__infoCardsStageName === stageName) {
+        __infoCardsDirty = false;
+        __infoCardsStageName = '';
+    }
+
+    // 如果还有其他卡片组，亮起最近的一个
+    var remaining = Object.keys(__cardSets);
+    if (remaining.length > 0) {
+        var lastKey = remaining[remaining.length - 1];
+        var lastSet = __cardSets[lastKey];
+        lastSet.cards.forEach(function(c) { c.classList.remove('dimmed'); c.classList.add('show'); });
+        lastSet.lines.forEach(function(l) { l.classList.add('show'); });
+        if (lastSet.xBtn) lastSet.xBtn.classList.add('show');
+        lastSet.dirty = false;
+        __infoCardsStageName = lastKey;
+    }
+
+    var saveBar = document.getElementById('timeline-info-savebar');
+    if (saveBar) saveBar.classList.remove('show');
+}
 
 window.closeInfoCards = function() {
-    if (__infoCardsDirty) {
-        if (!confirm('你有未保存的修改，确定要关闭吗？')) return;
+    var dirty = false;
+    Object.keys(__cardSets).forEach(function(k) { if (__cardSets[k].dirty) dirty = true; });
+    if (dirty) {
+        if (!confirm('\u6709\u672A\u4FDD\u5B58\u7684\u4FEE\u6539\uFF0C\u786E\u5B9A\u5173\u95ED\u6240\u6709\u5361\u7247\u5417\uFF1F')) return;
     }
-    __infoCardsDirty = false;
-    var cards = document.querySelectorAll('.timeline-info-card');
-    cards.forEach(function(c) {
-        c.classList.remove('show');
-        c.style.display = 'none';
+    Object.keys(__cardSets).forEach(function(k) {
+        var set = __cardSets[k];
+        set.cards.forEach(function(c) { c.remove(); });
+        set.lines.forEach(function(l) { l.remove(); });
+        if (set.xBtn) set.xBtn.remove();
+        delete __cardSets[k];
     });
+    __infoCardsDirty = false;
+    __infoCardsStageName = '';
     var saveBar = document.getElementById('timeline-info-savebar');
     if (saveBar) saveBar.classList.remove('show');
 };
 
-window.saveInfoCardEdit = function(stageName) {
+window.saveInfoCardEdit = function() {
+    var stageName = __infoCardsStageName;
+    if (!stageName || !__cardSets[stageName]) return;
     var tabEl = document.getElementById(__timelineTabId);
     if (!tabEl) return;
 
-    var descEl  = document.querySelector('#info-card-desc [data-field="desc"]');
-    var condEl  = document.querySelector('#info-card-cond [data-field="cond"]');
-    var guideEl = document.querySelector('#info-card-guide [data-field="guide"]');
-
-    var newDesc  = descEl  ? (descEl.innerText || descEl.textContent || '').trim() : '';
-    var newCond  = condEl  ? (condEl.innerText || condEl.textContent || '').trim() : '';
-    var newGuide = guideEl ? (guideEl.innerText || guideEl.textContent || '').trim() : '';
+    var set = __cardSets[stageName];
+    var newDesc  = (set.cards[0].querySelector('[data-field="desc"]')  || {}).innerText || set.cards[0].querySelector('[data-field="desc"]')  || { textContent: '' };
+    var newCond  = (set.cards[1].querySelector('[data-field="cond"]')  || {}).innerText || set.cards[1].querySelector('[data-field="cond"]')  || { textContent: '' };
+    var newGuide = (set.cards[2].querySelector('[data-field="guide"]') || {}).innerText || set.cards[2].querySelector('[data-field="guide"]') || { textContent: '' };
+    newDesc  = (typeof newDesc  === 'string' ? newDesc  : (newDesc.textContent  || '')).trim();
+    newCond  = (typeof newCond  === 'string' ? newCond  : (newCond.textContent  || '')).trim();
+    newGuide = (typeof newGuide === 'string' ? newGuide : (newGuide.textContent || '')).trim();
 
     if (originalDataCache[__timelineTabId] && originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF']) {
         originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF'][stageName] = {
-            '\u63CF\u8FF0': newDesc,
-            '\u89E6\u53D1\u6761\u4EF6': newCond,
-            '\u9636\u6BB5\u6307\u5BFC': newGuide
+            '\u63CF\u8FF0': newDesc, '\u89E6\u53D1\u6761\u4EF6': newCond, '\u9636\u6BB5\u6307\u5BFC': newGuide
         };
     }
 
     var dictUl = tabEl.querySelector('ul[data-complex-dict]');
     if (dictUl) {
-        var stageItems = dictUl.querySelectorAll('li[data-citem]');
-        stageItems.forEach(function(item) {
+        dictUl.querySelectorAll('li[data-citem]').forEach(function(item) {
             var ckey = item.querySelector('[data-ckey]');
             if (ckey && ckey.textContent.trim() === stageName) {
-                var rows = item.querySelectorAll('.custom-row');
-                rows.forEach(function(row) {
-                    var skey = row.querySelector('[data-skey]');
-                    var sval = row.querySelector('[data-sval]');
-                    if (skey && sval) {
-                        var kt = skey.textContent.trim();
-                        if (kt === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc);
-                        else if (kt === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond);
-                        else if (kt === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide);
+                item.querySelectorAll('.custom-row').forEach(function(row) {
+                    var sk = row.querySelector('[data-skey]'), sv = row.querySelector('[data-sval]');
+                    if (sk && sv) {
+                        var kt = sk.textContent.trim();
+                        if (kt === '\u63CF\u8FF0') sv.innerHTML = mtH(newDesc);
+                        else if (kt === '\u89E6\u53D1\u6761\u4EF6') sv.innerHTML = mtH(newCond);
+                        else if (kt === '\u9636\u6BB5\u6307\u5BFC') sv.innerHTML = mtH(newGuide);
                     }
                 });
             }
         });
     }
 
-    __infoCardsDirty = false;
-    closeInfoCards();
+    set.dirty = false;
+    showCustomAlert('\u2728 \u5DF2\u4FDD\u5B58');
 };
