@@ -351,13 +351,6 @@ window.switchStoryView = function(tabId, mode, btn) {
         if (guideUI) guideUI.style.display = '';
         if (guideAddBtn) guideAddBtn.style.display = '';
     }
-    } else {
-        // 恢复文档流
-        var prompt = document.getElementById('timeline-prompt-' + tabId);
-        if (ul) ul.style.display = '';
-        if (addBtn) addBtn.style.display = '';
-        if (prompt) prompt.remove();
-    }
 };
 
 function openTimelineOverlay() {
