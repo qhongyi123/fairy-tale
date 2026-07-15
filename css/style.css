@@ -678,8 +678,6 @@ body {
     color: var(--color-accent);
 }
 
-/* 卡片放大查看/编辑弹窗 */
-
 /* 编辑模式下的保存按钮栏 */
 .timeline-info-savebar {
     position: absolute;
@@ -700,15 +698,6 @@ body {
     font-weight: bold;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     pointer-events: auto;
-}
-
-/* 卡片放大查看/编辑弹窗 */
-
-/* 卡片变暗状态（已切换至其他节点） */
-.timeline-info-card.dimmed {
-    opacity: 0.12;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
 }
 
 /* 连线：从节点连接到卡片 */
