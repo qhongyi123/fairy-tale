@@ -550,7 +550,16 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
     card.className = 'timeline-info-card';
     var hdr = document.createElement('div');
     hdr.className = 'timeline-info-card-header';
-    hdr.textContent = label;
+    var lblSpan = document.createElement('span');
+    lblSpan.textContent = label;
+    hdr.appendChild(lblSpan);
+    var expBtn = document.createElement('span');
+    expBtn.className = 'info-card-expand';
+    expBtn.textContent = '\u26F6';
+    expBtn.title = '\u653E\u5927\u67E5\u770B/\u7F16\u8F91';
+    expBtn.onclick = function(e) { e.stopPropagation(); openZoomCard(stageName, fieldName, label); };
+    expBtn.onmousedown = function(e) { e.stopPropagation(); };
+    hdr.appendChild(expBtn);
     card.appendChild(hdr);
     var bd = document.createElement('div');
     bd.className = 'timeline-info-card-body';
@@ -805,6 +814,59 @@ function _closeOneCardSet(stageName) {
     var saveBar = document.getElementById('timeline-info-savebar');
     if (saveBar) saveBar.classList.remove('show');
 }
+
+var __zoomStageName = '', __zoomField = '';
+
+window.openZoomCard = function(stageName, fieldName, label) {
+    var set = __cardSets[stageName];
+    if (!set) return;
+
+    __zoomStageName = stageName;
+    __zoomField = fieldName;
+
+    var cardIdx = fieldName === 'desc' ? 0 : (fieldName === 'cond' ? 1 : 2);
+    var card = set.cards[cardIdx];
+    var bodyEl = card.querySelector('.timeline-info-card-body');
+    var isEdit = set.isEdit;
+    var content = bodyEl.textContent || bodyEl.innerText || '';
+
+    document.getElementById('zoomCardTitle').textContent = label;
+    var bodyBox = document.getElementById('zoomCardBody');
+    if (isEdit) {
+        bodyBox.innerHTML = '';
+        bodyBox.setAttribute('contenteditable', 'true');
+        bodyBox.className = 'zoom-card-body editable';
+        bodyBox.textContent = content;
+        document.getElementById('zoomCardFooter').style.display = 'flex';
+    } else {
+        bodyBox.removeAttribute('contenteditable');
+        bodyBox.className = 'zoom-card-body';
+        bodyBox.textContent = content;
+        document.getElementById('zoomCardFooter').style.display = 'none';
+    }
+    document.getElementById('zoomCardOverlay').classList.add('active');
+};
+
+window.closeZoomCard = function(save) {
+    if (save && __zoomStageName && __cardSets[__zoomStageName]) {
+        var set = __cardSets[__zoomStageName];
+        var cardIdx = __zoomField === 'desc' ? 0 : (__zoomField === 'cond' ? 1 : 2);
+        var card = set.cards[cardIdx];
+        var bodyEl = card.querySelector('.timeline-info-card-body');
+        var zoomBody = document.getElementById('zoomCardBody');
+        var newContent = zoomBody.textContent || zoomBody.innerText || '';
+        if (set.isEdit) {
+            bodyEl.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + __zoomField + '" oninput="__cardSets[\'' + __zoomStageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + newContent + '</div>';
+        } else {
+            bodyEl.textContent = newContent;
+        }
+        set.dirty = true;
+        __infoCardsDirty = true;
+    }
+    __zoomStageName = '';
+    __zoomField = '';
+    document.getElementById('zoomCardOverlay').classList.remove('active');
+};
 
 window.closeInfoCards = function() {
     var dirty = false;
