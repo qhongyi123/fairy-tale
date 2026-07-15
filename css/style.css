@@ -601,49 +601,23 @@ body {
 }
 .timeline-node.expand-all::after { content: none; }
 
-/* 信息卡片（从节点伸出线条连接三张卡片，直接定位在画布中） */
+/* 信息卡片（点击节点后在上方/下方展开，三张卡片并排显示） */
 .timeline-info-card {
     position: absolute; display: none;
     background: var(--bg-content);
     background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
     border: 2px solid var(--color-primary-dark); border-radius: 8px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-    padding: 10px 12px; width: 210px; max-height: 170px; overflow-y: auto;
+    padding: 10px 12px; width: 210px;
     color: var(--color-text-dark); z-index: 100;
     opacity: 0;
     transform: translateY(16px);
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: default;
 }
 .timeline-info-card.show {
     opacity: 1;
     transform: translateY(0);
-}
-
-/* 连接线 */
-.timeline-info-line {
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: 2px;
-    height: 0;
-    background: var(--color-primary);
-    transform-origin: bottom center;
-    transform: scaleY(0);
-    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.timeline-info-card.show .timeline-info-line {
-    transform: scaleY(1);
-}
-.timeline-info-line::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
-    background: var(--color-primary);
-    border-radius: 50%;
 }
 
 .timeline-info-card-header {
@@ -661,6 +635,8 @@ body {
     font-size: 0.82rem;
     line-height: 1.5;
     min-height: 1em;
+    max-height: 120px;
+    overflow-y: auto;
 }
 .timeline-info-card-body.editable-field {
     border: 1px solid rgba(184,134,11,0.3);

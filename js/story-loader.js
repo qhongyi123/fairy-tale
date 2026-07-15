@@ -570,7 +570,6 @@ window.showTimelinePopup = function(stageName, stageData) {
         cardGuide.querySelector('.timeline-info-card-body').textContent = guide;
     }
 
-    // 找到对应节点
     var nodes = document.querySelectorAll('.timeline-node');
     var targetNode = null;
     nodes.forEach(function(n) {
@@ -591,14 +590,14 @@ window.showTimelinePopup = function(stageName, stageData) {
     var cardW = 210;
     var cardH = 130;
     var gap = 16;
-    var lineLen = 55;
+    var margin = 20;
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
 
-    var cardTop = nodeY - cardH - lineLen;
+    var cardTop = nodeY - cardH - margin;
     var placeBelow = (cardTop < 10);
     if (placeBelow) {
-        cardTop = nodeY + nodeH + lineLen;
+        cardTop = nodeY + nodeH + margin;
     }
 
     var positions = [
@@ -607,36 +606,21 @@ window.showTimelinePopup = function(stageName, stageData) {
         { el: cardGuide, left: startX + (cardW + gap) * 2 }
     ];
 
-    // 重置动画状态
     allCards.forEach(function(c) {
         c.classList.remove('show');
-        c.classList.remove('below');
     });
 
     positions.forEach(function(pos) {
         var card = pos.el;
-        var line = card.querySelector('.timeline-info-line');
-
         card.style.left = pos.left + 'px';
         card.style.top = cardTop + 'px';
         card.style.width = cardW + 'px';
         card.style.display = 'block';
 
-        if (placeBelow) {
-            card.classList.add('below');
-            line.style.bottom = 'auto';
-            line.style.top = (-lineLen) + 'px';
-            line.style.transformOrigin = 'bottom center';
-            line.style.height = lineLen + 'px';
-        } else {
-            line.style.bottom = (-lineLen) + 'px';
-            line.style.top = 'auto';
-            line.style.transformOrigin = 'top center';
-            line.style.height = lineLen + 'px';
-        }
+        // 阻止卡片上的拖拽事件冒泡到画布
+        card.onmousedown = function(e) { e.stopPropagation(); };
     });
 
-    // 限制左右不溢出
     var minX = 10;
     var maxX = canvas.scrollWidth - totalW - 10;
     if (startX < minX) {
@@ -647,7 +631,6 @@ window.showTimelinePopup = function(stageName, stageData) {
         positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) - shift) + 'px'; });
     }
 
-    // 强制浏览器提交布局，然后触发动画
     void cardDesc.offsetHeight;
     requestAnimationFrame(function() {
         requestAnimationFrame(function() {
@@ -655,7 +638,6 @@ window.showTimelinePopup = function(stageName, stageData) {
         });
     });
 
-    // 编辑模式下显示保存按钮
     var saveBar = document.getElementById('timeline-info-savebar');
     if (!saveBar) {
         saveBar = document.createElement('div');
@@ -671,6 +653,7 @@ window.showTimelinePopup = function(stageName, stageData) {
         saveBar.classList.add('show');
         saveBar.style.left = (startX + totalW - 70) + 'px';
         saveBar.style.top = (placeBelow ? cardTop + cardH + 8 : cardTop - 36) + 'px';
+        saveBar.onmousedown = function(e) { e.stopPropagation(); };
     } else {
         saveBar.classList.remove('show');
     }
@@ -684,7 +667,6 @@ window.closeInfoCards = function() {
     var cards = document.querySelectorAll('.timeline-info-card');
     cards.forEach(function(c) {
         c.classList.remove('show');
-        c.classList.remove('below');
         c.style.display = 'none';
     });
     var saveBar = document.getElementById('timeline-info-savebar');
