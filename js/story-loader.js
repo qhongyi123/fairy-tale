@@ -537,20 +537,25 @@ window.showTimelinePopup = function(stageName, stageData) {
     nodes.forEach(function(n) {
         if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
     });
-    if (!targetNode) return;
+    if (!targetNode) { bubble.style.display = 'none'; return; }
 
     var canvas = document.getElementById('timeline-canvas');
     var nodeRect = targetNode.getBoundingClientRect();
     var canvasRect = canvas.getBoundingClientRect();
     var scrollLeft = canvas.scrollLeft;
 
+    // canvas 坐标系：X 需加 scrollLeft，Y 不加（canvas 不纵向滚动）
+    var nodeX = nodeRect.left - canvasRect.left + scrollLeft;
+    var nodeY = nodeRect.top - canvasRect.top;
+    var bw = parseInt(bubble.offsetWidth) || 340;
+
     // 默认放在节点上方
-    var left = nodeRect.left - canvasRect.left + scrollLeft + nodeRect.width / 2 - 170;
-    var top = nodeRect.top - canvasRect.top + scrollLeft - 10;
+    var left = nodeX + nodeRect.width / 2 - bw / 2;
+    var top = nodeY - parseInt(bubble.offsetHeight) - 16;
 
     // 如果上方空间不够，放下方
-    if (top < 220) {
-        top = nodeRect.bottom - canvasRect.top;
+    if (top < 10 || nodeY < 250) {
+        top = nodeY + nodeRect.height + 16;
         bubble.classList.add('below');
     } else {
         bubble.classList.remove('below');
@@ -558,7 +563,7 @@ window.showTimelinePopup = function(stageName, stageData) {
 
     // 限制左右不溢出
     if (left < 10) left = 10;
-    if (left + 340 > canvas.scrollWidth) left = canvas.scrollWidth - 350;
+    if (left + bw > canvas.scrollWidth) left = canvas.scrollWidth - bw - 10;
 
     bubble.style.left = left + 'px';
     bubble.style.top = top + 'px';
