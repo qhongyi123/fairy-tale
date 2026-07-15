@@ -303,6 +303,7 @@ window.addEventListener('DOMContentLoaded', function() {
 var __timelineTabId = '';
 var __timelineData = {};
 var __timelineAllOpen = false;
+var __timelineScrollTimer = null;
 var __savedSubPanels = {};
 
 window.switchStoryView = function(tabId, mode, btn) {
@@ -382,8 +383,52 @@ document.addEventListener('webkitfullscreenchange', function() {
 window.startTimeline = function() {
     document.getElementById('timeline-init-screen').style.display = 'none';
     document.getElementById('timeline-canvas').style.display = '';
+    setupTimelineDrag();
     renderTimelineNodes();
 };
+
+// ===== 桌面端鼠标拖拽滚动 =====
+var __timelineDragging = false;
+var __timelineStartX = 0;
+var __timelineScrollLeft = 0;
+
+function setupTimelineDrag() {
+    var canvas = document.getElementById('timeline-canvas');
+    if (!canvas || canvas.dataset.dragReady) return;
+    canvas.dataset.dragReady = '1';
+
+    canvas.addEventListener('mousedown', function(e) {
+        __timelineDragging = true;
+        __timelineStartX = e.pageX - canvas.offsetLeft;
+        __timelineScrollLeft = canvas.scrollLeft;
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!__timelineDragging) return;
+        var canvas = document.getElementById('timeline-canvas');
+        var x = e.pageX - canvas.offsetLeft;
+        var walk = (x - __timelineStartX) * 1.5;
+        canvas.scrollLeft = __timelineScrollLeft - walk;
+    });
+
+    window.addEventListener('mouseup', function() {
+        if (__timelineDragging) {
+            __timelineDragging = false;
+            var canvas = document.getElementById('timeline-canvas');
+            if (canvas) canvas.style.cursor = 'grab';
+            updateNodeVisibility();
+        }
+    });
+
+    canvas.addEventListener('scroll', function() {
+        if (!__timelineDragging) {
+            if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
+            __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
+        }
+    });
+}
 
 function renderTimelineNodes() {
     var container = document.getElementById('timeline-nodes');
@@ -430,17 +475,6 @@ function updateNodeVisibility() {
     });
 }
 
-var __timelineScrollTimer = null;
-document.addEventListener('DOMContentLoaded', function() {
-    var canvas = document.getElementById('timeline-canvas');
-    if (canvas) {
-        canvas.addEventListener('scroll', function() {
-            if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
-            __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
-        });
-    }
-});
-
 window.toggleTimelineExpand = function() {
     __timelineAllOpen = !__timelineAllOpen;
     var btn = document.getElementById('timeline-expand-btn');
@@ -462,12 +496,70 @@ window.showTimelinePopup = function(stageName, stageData) {
     var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
     var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
 
-    content.innerHTML =
-        '<div class="timeline-popup-title">' + mtH(stageName) + '</div>' +
-        '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div>' + mtH(desc) + '</div></div>' +
-        '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div>' + mtH(cond) + '</div></div>' +
-        '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div>' + mtH(guide) + '</div></div>';
+    // 检测编辑模式
+    var tabEl = document.getElementById(__timelineTabId);
+    var isEdit = tabEl && tabEl.classList.contains('is-edit-mode');
+    var editAttr = isEdit ? ' contenteditable="true"' : '';
+
+    if (isEdit) {
+        content.innerHTML =
+            '<div class="timeline-popup-title">' + mtH(stageName) + ' <span style="font-size:0.7rem;color:#cc0000;">(\u7F16\u8F91\u6A21\u5F0F)</span></div>' +
+            '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div class="editable-field editable-textarea" data-field="desc"' + editAttr + '>' + mtH(desc) + '</div></div>' +
+            '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div class="editable-field editable-textarea" data-field="cond"' + editAttr + '>' + mtH(cond) + '</div></div>' +
+            '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div class="editable-field editable-textarea" data-field="guide"' + editAttr + '>' + mtH(guide) + '</div></div>' +
+            '<div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">' +
+                '<button onclick="saveTimelineEdit(\'' + stageName + '\')" style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark)); color:#1a0f2e; border:none; border-radius:4px; padding:6px 16px; cursor:pointer; font-weight:bold;">\u2727 \u4FDD\u5B58\u4FEE\u6539 \u2727</button>' +
+            '</div>';
+    } else {
+        content.innerHTML =
+            '<div class="timeline-popup-title">' + mtH(stageName) + '</div>' +
+            '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div>' + mtH(desc) + '</div></div>' +
+            '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div>' + mtH(cond) + '</div></div>' +
+            '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div>' + mtH(guide) + '</div></div>';
+    }
     popup.classList.add('active');
+};
+
+window.saveTimelineEdit = function(stageName) {
+    var tabEl = document.getElementById(__timelineTabId);
+    if (!tabEl) return;
+    var dictUl = tabEl.querySelector('ul[data-complex-dict="variable.\u5267\u60C5\u7EBF"]');
+    if (!dictUl) return;
+
+    var popup = document.getElementById('timeline-popup-content');
+    var newDesc = window.extractMdFromNode(popup.querySelector('[data-field="desc"]')) || '';
+    var newCond = window.extractMdFromNode(popup.querySelector('[data-field="cond"]')) || '';
+    var newGuide = window.extractMdFromNode(popup.querySelector('[data-field="guide"]')) || '';
+
+    // 更新 originalDataCache
+    if (originalDataCache[__timelineTabId] && originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF']) {
+        originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF'][stageName] = {
+            '\u63CF\u8FF0': newDesc.trim(),
+            '\u89E6\u53D1\u6761\u4EF6': newCond.trim(),
+            '\u9636\u6BB5\u6307\u5BFC': newGuide.trim()
+        };
+    }
+
+    // 更新 DOM 中的对应内容
+    var stageItems = dictUl.querySelectorAll('li[data-citem]');
+    stageItems.forEach(function(item) {
+        var ckey = item.querySelector('[data-ckey]');
+        if (ckey && ckey.textContent.trim() === stageName) {
+            var rows = item.querySelectorAll('.custom-row');
+            rows.forEach(function(row) {
+                var skey = row.querySelector('[data-skey]');
+                var sval = row.querySelector('[data-sval]');
+                if (skey && sval) {
+                    var keyText = skey.textContent.trim();
+                    if (keyText === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc.trim());
+                    else if (keyText === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond.trim());
+                    else if (keyText === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide.trim());
+                }
+            });
+        }
+    });
+
+    closeTimelinePopup();
 };
 
 window.closeTimelinePopup = function() {
