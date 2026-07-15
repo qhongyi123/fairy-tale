@@ -344,6 +344,13 @@ function openTimelineOverlay() {
     overlay.classList.add('active');
     renderTimelineNodes();
 
+    // 同步编辑模式开关状态
+    var tabEl = document.getElementById(__timelineTabId);
+    var tlChk = document.getElementById('timeline-edit-chk');
+    if (tabEl && tlChk) {
+        tlChk.checked = tabEl.classList.contains('is-edit-mode');
+    }
+
     // 请求浏览器全屏
     var el = overlay;
     if (el.requestFullscreen) {
@@ -356,10 +363,10 @@ function openTimelineOverlay() {
 }
 
 window.closeTimeline = function() {
-    if (__bubbleDirty) {
-        if (!confirm('气泡中有未保存的修改，确定要退出脉络式吗？')) return;
+    if (__infoCardsDirty) {
+        if (!confirm('卡片中有未保存的修改，确定要退出脉络式吗？')) return;
     }
-    __bubbleDirty = false;
+    __infoCardsDirty = false;
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         if (document.exitFullscreen) {
             document.exitFullscreen();
@@ -375,13 +382,13 @@ window.closeTimeline = function() {
 // 监听 ESC 或系统退出全屏时同步关闭覆盖层
 document.addEventListener('fullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        __bubbleDirty = false;
+        __infoCardsDirty = false;
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
 document.addEventListener('webkitfullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        __bubbleDirty = false;
+        __infoCardsDirty = false;
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
@@ -391,6 +398,37 @@ window.startTimeline = function() {
     document.getElementById('timeline-canvas').style.display = '';
     setupTimelineDrag();
     renderTimelineNodes();
+};
+
+// 脉络式内的编辑模式开关（与外部同步）
+window.toggleTimelineEditMode = function(chkEl) {
+    var tabEl = document.getElementById(__timelineTabId);
+    if (!tabEl) return;
+    var isChecked = chkEl.checked;
+
+    // 找到外部 tab 的编辑开关
+    var outerChk = tabEl.querySelector('.edit-switch-container input[type="checkbox"]');
+    if (outerChk && outerChk.checked !== isChecked) {
+        outerChk.checked = isChecked;
+        window.toggleEditMode(outerChk, __timelineTabId);
+    } else if (!outerChk) {
+        // 外部没有开关时直接操作
+        if (isChecked) {
+            tabEl.classList.add('is-edit-mode');
+            tabEl.querySelectorAll('.editable-field').forEach(function(el) { el.setAttribute('contenteditable', 'true'); });
+        } else {
+            tabEl.classList.remove('is-edit-mode');
+            tabEl.querySelectorAll('.editable-field').forEach(function(el) { el.removeAttribute('contenteditable'); });
+        }
+    }
+
+    // 如果当前有卡片打开，刷新为编辑模式
+    if (__infoCardsStageName && document.getElementById('timeline-info-container').classList.contains('active')) {
+        var stageData = __timelineData[__infoCardsStageName];
+        if (stageData) {
+            window.showTimelinePopup(__infoCardsStageName, stageData);
+        }
+    }
 };
 
 // ===== 桌面端鼠标拖拽滚动 =====
@@ -432,6 +470,13 @@ function setupTimelineDrag() {
         if (!__timelineDragging) {
             if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
             __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
+        }
+    });
+
+    // 点击画布空白区域关闭卡片
+    canvas.addEventListener('click', function(e) {
+        if (e.target === canvas || e.target.classList.contains('timeline-nodes')) {
+            closeInfoCards();
         }
     });
 }
@@ -495,102 +540,182 @@ window.toggleTimelineExpand = function() {
     }
 };
 
-var __bubbleDirty = false;
-var __bubbleStageName = '';
+var __infoCardsDirty = false;
+var __infoCardsStageName = '';
 
 window.showTimelinePopup = function(stageName, stageData) {
-    var bubble = document.getElementById('timeline-bubble');
+    var container = document.getElementById('timeline-info-container');
     var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0';
     var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
     var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
 
     var tabEl = document.getElementById(__timelineTabId);
     var isEdit = tabEl && tabEl.classList.contains('is-edit-mode');
-    __bubbleStageName = stageName;
-    __bubbleDirty = false;
+    __infoCardsStageName = stageName;
+    __infoCardsDirty = false;
 
-    var html = '';
-    html += '<div class="timeline-bubble-header">';
-    html += '<span class="timeline-bubble-title">' + mtH(stageName) + (isEdit ? ' <span style="font-size:0.7rem;color:#cc0000;">(编辑)</span>' : '') + '</span>';
-    html += '<span class="timeline-bubble-close" onclick="closeBubble()">&times;</span>';
-    html += '</div>';
+    // 填充三张卡片
+    var cardDesc  = document.getElementById('info-card-desc');
+    var cardCond  = document.getElementById('info-card-cond');
+    var cardGuide = document.getElementById('info-card-guide');
 
     if (isEdit) {
-        html += '<div class="timeline-bubble-field"><strong>描述</strong><div class="editable-field" contenteditable="true" data-field="desc" oninput="__bubbleDirty=true">' + desc + '</div></div>';
-        html += '<div class="timeline-bubble-field"><strong>触发条件</strong><div class="editable-field" contenteditable="true" data-field="cond" oninput="__bubbleDirty=true">' + cond + '</div></div>';
-        html += '<div class="timeline-bubble-field"><strong>阶段指导</strong><div class="editable-field" contenteditable="true" data-field="guide" oninput="__bubbleDirty=true">' + guide + '</div></div>';
-        html += '<div style="display:flex; gap:6px; justify-content:flex-end; margin-top:8px;">';
-        html += '<button onclick="saveBubbleEdit(\'' + stageName + '\')" style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark)); color:#1a0f2e; border:none; border-radius:4px; padding:4px 14px; cursor:pointer; font-size:0.8rem; font-weight:bold;">\u2727 \u4FDD\u5B58</button>';
-        html += '</div>';
+        cardDesc.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="desc" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + desc + '</div>';
+        cardCond.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="cond" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + cond + '</div>';
+        cardGuide.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="guide" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + guide + '</div>';
     } else {
-        html += '<div class="timeline-bubble-field"><strong>描述</strong><div>' + mtH(desc) + '</div></div>';
-        html += '<div class="timeline-bubble-field"><strong>触发条件</strong><div>' + mtH(cond) + '</div></div>';
-        html += '<div class="timeline-bubble-field"><strong>阶段指导</strong><div>' + mtH(guide) + '</div></div>';
+        cardDesc.querySelector('.timeline-info-card-body').textContent = desc;
+        cardCond.querySelector('.timeline-info-card-body').textContent = cond;
+        cardGuide.querySelector('.timeline-info-card-body').textContent = guide;
     }
 
-    bubble.innerHTML = html;
-    bubble.style.display = 'block';
-
-    // 定位气泡：找到对应节点
+    // 找到对应节点
     var nodes = document.querySelectorAll('.timeline-node');
     var targetNode = null;
     nodes.forEach(function(n) {
         if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
     });
-    if (!targetNode) { bubble.style.display = 'none'; return; }
+    if (!targetNode) return;
 
     var canvas = document.getElementById('timeline-canvas');
     var nodeRect = targetNode.getBoundingClientRect();
     var canvasRect = canvas.getBoundingClientRect();
     var scrollLeft = canvas.scrollLeft;
 
-    // canvas 坐标系：X 需加 scrollLeft，Y 不加（canvas 不纵向滚动）
     var nodeX = nodeRect.left - canvasRect.left + scrollLeft;
     var nodeY = nodeRect.top - canvasRect.top;
-    var bw = parseInt(bubble.offsetWidth) || 340;
+    var nodeW = nodeRect.width;
+    var nodeH = nodeRect.height;
 
-    // 默认放在节点上方
-    var left = nodeX + nodeRect.width / 2 - bw / 2;
-    var top = nodeY - parseInt(bubble.offsetHeight) - 16;
+    var cardW = 210;
+    var cardH = 130;
+    var gap = 16;
+    var lineLen = 55;
 
-    // 如果上方空间不够，放下方
-    if (top < 10 || nodeY < 250) {
-        top = nodeY + nodeRect.height + 16;
-        bubble.classList.add('below');
-    } else {
-        bubble.classList.remove('below');
+    // 卡片水平排列：左(描述) 中(触发条件) 右(阶段指导)
+    var totalW = cardW * 3 + gap * 2;
+    var startX = nodeX + nodeW / 2 - totalW / 2;
+
+    // 默认放节点上方
+    var cardTop = nodeY - cardH - lineLen;
+    var placeBelow = (cardTop < 10);
+
+    if (placeBelow) {
+        cardTop = nodeY + nodeH + lineLen;
     }
 
-    // 限制左右不溢出
-    if (left < 10) left = 10;
-    if (left + bw > canvas.scrollWidth) left = canvas.scrollWidth - bw - 10;
+    var positions = [
+        { el: cardDesc,  left: startX },
+        { el: cardCond,  left: startX + cardW + gap },
+        { el: cardGuide, left: startX + (cardW + gap) * 2 }
+    ];
 
-    bubble.style.left = left + 'px';
-    bubble.style.top = top + 'px';
+    // 先隐藏所有卡片，重置动画
+    [cardDesc, cardCond, cardGuide].forEach(function(c) {
+        c.classList.remove('show');
+        c.classList.remove('below');
+    });
+
+    container.style.display = 'block';
+    container.classList.add('active');
+
+    // 强制回流后设置位置
+    void container.offsetWidth;
+
+    positions.forEach(function(pos) {
+        var card = pos.el;
+        var line = card.querySelector('.timeline-info-line');
+
+        // 卡片水平居中于其对应位置
+        var cardLeft = pos.left;
+        card.style.left = cardLeft + 'px';
+        card.style.top = cardTop + 'px';
+        card.style.width = cardW + 'px';
+
+        if (placeBelow) {
+            card.classList.add('below');
+            line.style.bottom = 'auto';
+            line.style.top = (-lineLen) + 'px';
+            line.style.transformOrigin = 'bottom center';
+            line.style.height = lineLen + 'px';
+        } else {
+            card.classList.remove('below');
+            line.style.bottom = (-lineLen) + 'px';
+            line.style.top = 'auto';
+            line.style.transformOrigin = 'top center';
+            line.style.height = lineLen + 'px';
+        }
+
+        // 触发动画
+        requestAnimationFrame(function() {
+            card.classList.add('show');
+        });
+    });
+
+    // 限制左右不溢出画布
+    var minX = 10;
+    var maxX = canvas.scrollWidth - totalW - 10;
+    if (startX < minX) {
+        var shift = minX - startX;
+        positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) + shift) + 'px'; });
+    } else if (startX > maxX) {
+        var shift = startX - maxX;
+        positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) - shift) + 'px'; });
+    }
+
+    // 编辑模式下显示保存按钮
+    var saveBar = document.getElementById('timeline-info-savebar');
+    if (!saveBar) {
+        saveBar = document.createElement('div');
+        saveBar.id = 'timeline-info-savebar';
+        saveBar.className = 'timeline-info-savebar';
+        saveBar.innerHTML = '<button onclick="saveInfoCardEdit(\'' + stageName + '\')">\u2727 \u4FDD\u5B58</button>';
+        document.getElementById('timeline-canvas').appendChild(saveBar);
+    } else {
+        saveBar.querySelector('button').setAttribute('onclick', 'saveInfoCardEdit(\'' + stageName + '\')');
+    }
+
+    if (isEdit) {
+        saveBar.classList.add('show');
+        var firstCard = cardDesc;
+        var sl = parseFloat(firstCard.style.left);
+        var st = placeBelow ? (cardTop + cardH + 8) : (cardTop - 36);
+        saveBar.style.left = (sl + totalW - 70) + 'px';
+        saveBar.style.top = st + 'px';
+    } else {
+        saveBar.classList.remove('show');
+    }
 };
 
-window.closeBubble = function() {
-    if (__bubbleDirty) {
+window.closeInfoCards = function() {
+    if (__infoCardsDirty) {
         if (!confirm('你有未保存的修改，确定要关闭吗？')) return;
     }
-    __bubbleDirty = false;
-    var bubble = document.getElementById('timeline-bubble');
-    bubble.style.display = 'none';
+    __infoCardsDirty = false;
+    var container = document.getElementById('timeline-info-container');
+    container.classList.remove('active');
+    container.style.display = 'none';
+    var saveBar = document.getElementById('timeline-info-savebar');
+    if (saveBar) saveBar.classList.remove('show');
 };
 
-window.saveBubbleEdit = function(stageName) {
+window.saveInfoCardEdit = function(stageName) {
     var tabEl = document.getElementById(__timelineTabId);
     if (!tabEl) return;
-    var bubble = document.getElementById('timeline-bubble');
-    var newDesc = (bubble.querySelector('[data-field="desc"]') || {}).innerText || '';
-    var newCond = (bubble.querySelector('[data-field="cond"]') || {}).innerText || '';
-    var newGuide = (bubble.querySelector('[data-field="guide"]') || {}).innerText || '';
+
+    var descEl  = document.querySelector('#info-card-desc [data-field="desc"]');
+    var condEl  = document.querySelector('#info-card-cond [data-field="cond"]');
+    var guideEl = document.querySelector('#info-card-guide [data-field="guide"]');
+
+    var newDesc  = descEl  ? (descEl.innerText || descEl.textContent || '').trim() : '';
+    var newCond  = condEl  ? (condEl.innerText || condEl.textContent || '').trim() : '';
+    var newGuide = guideEl ? (guideEl.innerText || guideEl.textContent || '').trim() : '';
 
     if (originalDataCache[__timelineTabId] && originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF']) {
         originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF'][stageName] = {
-            '\u63CF\u8FF0': newDesc.trim(),
-            '\u89E6\u53D1\u6761\u4EF6': newCond.trim(),
-            '\u9636\u6BB5\u6307\u5BFC': newGuide.trim()
+            '\u63CF\u8FF0': newDesc,
+            '\u89E6\u53D1\u6761\u4EF6': newCond,
+            '\u9636\u6BB5\u6307\u5BFC': newGuide
         };
     }
 
@@ -606,19 +731,15 @@ window.saveBubbleEdit = function(stageName) {
                     var sval = row.querySelector('[data-sval]');
                     if (skey && sval) {
                         var kt = skey.textContent.trim();
-                        if (kt === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc.trim());
-                        else if (kt === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond.trim());
-                        else if (kt === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide.trim());
+                        if (kt === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc);
+                        else if (kt === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond);
+                        else if (kt === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide);
                     }
                 });
             }
         });
     }
 
-    __bubbleDirty = false;
-    window.closeBubble = function() {
-        __bubbleDirty = false;
-        document.getElementById('timeline-bubble').style.display = 'none';
-    };
-    closeBubble();
+    __infoCardsDirty = false;
+    closeInfoCards();
 };

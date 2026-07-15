@@ -275,7 +275,14 @@ ws12
 <div class="timeline-overlay" id="timeline-overlay">
     <div class="timeline-top-bar">
         <span class="timeline-title">&#x2727; 剧情脉络 &#x2727;</span>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <div class="edit-switch-container timeline-edit-switch">
+                <span>修改模式</span>
+                <label class="switch-ui">
+                    <input type="checkbox" id="timeline-edit-chk" onchange="toggleTimelineEditMode(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
             <button id="timeline-expand-btn" onclick="toggleTimelineExpand()">&#x26F6; 全开</button>
             <button class="timeline-close-btn" onclick="closeTimeline()">&#x2715; 关闭</button>
         </div>
@@ -286,7 +293,23 @@ ws12
     </div>
     <div class="timeline-canvas" id="timeline-canvas" style="display:none;">
         <div class="timeline-nodes" id="timeline-nodes"></div>
-        <div class="timeline-bubble" id="timeline-bubble"></div>
+        <div class="timeline-info-container" id="timeline-info-container">
+            <div class="timeline-info-card" id="info-card-desc">
+                <div class="timeline-info-line"></div>
+                <div class="timeline-info-card-header">描述</div>
+                <div class="timeline-info-card-body"></div>
+            </div>
+            <div class="timeline-info-card" id="info-card-cond">
+                <div class="timeline-info-line"></div>
+                <div class="timeline-info-card-header">触发条件</div>
+                <div class="timeline-info-card-body"></div>
+            </div>
+            <div class="timeline-info-card" id="info-card-guide">
+                <div class="timeline-info-line"></div>
+                <div class="timeline-info-card-header">阶段指导</div>
+                <div class="timeline-info-card-body"></div>
+            </div>
+        </div>
     </div>
 </div>
 

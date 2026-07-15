@@ -305,6 +305,22 @@ window.toggleEditMode = function(chkboxEl, tabId) {
         panel.classList.remove('is-edit-mode');
         panel.querySelectorAll('.editable-field').forEach(function(el) { el.removeAttribute('contenteditable'); });
     }
+
+    // 同步脉络式覆盖层中的编辑开关
+    var tlChk = document.getElementById('timeline-edit-chk');
+    if (tlChk && tlChk.checked !== chkboxEl.checked) {
+        tlChk.checked = chkboxEl.checked;
+    }
+
+    // 如果脉络式中有卡片打开且属于当前 tab，刷新卡片编辑状态
+    if (typeof __timelineTabId !== 'undefined' && __timelineTabId === tabId &&
+        typeof __infoCardsStageName !== 'undefined' && __infoCardsStageName &&
+        document.getElementById('timeline-info-container').classList.contains('active')) {
+        var stageData = __timelineData[__infoCardsStageName];
+        if (stageData) {
+            window.showTimelinePopup(__infoCardsStageName, stageData);
+        }
+    }
 };
 
 // ===== 地域 / 民俗 / 道具管理 =====

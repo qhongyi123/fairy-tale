@@ -513,6 +513,13 @@ body {
 .timeline-top-bar button:hover { filter: brightness(1.2); }
 .timeline-top-bar .timeline-close-btn { background: rgba(139, 43, 43, 0.3); border-color: rgba(200, 60, 60, 0.6); color: #fcc; }
 
+.timeline-edit-switch {
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    margin-right: 4px;
+}
+
 .timeline-init-screen {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 20px;
@@ -594,56 +601,144 @@ body {
 }
 .timeline-node.expand-all::after { content: none; }
 
-/* 气泡弹窗（从节点伸出） */
-.timeline-bubble {
+/* 信息卡片容器（从节点伸出线条连接三张卡片） */
+.timeline-info-container {
     position: absolute; display: none; z-index: 100;
+    pointer-events: none;
+}
+.timeline-info-container.active {
+    display: block;
+}
+
+.timeline-info-card {
+    position: absolute;
     background: var(--bg-content);
     background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
     border: 2px solid var(--color-primary-dark); border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    padding: 16px; width: 340px; max-height: 400px; overflow-y: auto;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    padding: 10px 12px; width: 210px; max-height: 170px; overflow-y: auto;
     color: var(--color-text-dark);
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
 }
-.timeline-bubble::before {
-    content: ''; position: absolute;
-    left: 50%; transform: translateX(-50%);
-    border: 8px solid transparent;
-    border-bottom-color: var(--color-primary-dark);
-    top: -16px;
+.timeline-info-card.show {
+    opacity: 1;
+    transform: translateY(0);
 }
-.timeline-bubble.below::before {
-    top: auto; bottom: -16px;
-    border-bottom-color: transparent;
-    border-top-color: var(--color-primary-dark);
-}
-.timeline-bubble-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 10px; padding-bottom: 6px;
-    border-bottom: 1px dashed rgba(184,134,11,0.4);
-}
-.timeline-bubble-title {
-    font-family: 'Ma Shan Zheng', cursive; font-size: 1.15rem;
-    color: var(--color-primary-dark);
-}
-.timeline-bubble-close {
-    cursor: pointer; color: var(--color-accent); font-size: 1.2rem;
-    line-height: 1;
-}
-.timeline-bubble-close:hover { color: #cc0000; }
-.timeline-bubble-field { margin-bottom: 10px; }
-.timeline-bubble-field strong {
-    color: var(--color-accent); font-size: 0.85rem; display: block; margin-bottom: 3px;
-}
-.timeline-bubble-field div { font-size: 0.85rem; line-height: 1.5; }
 
-.timeline-bubble .editable-field {
-    min-height: 1em; border: 1px solid rgba(184,134,11,0.3);
-    border-radius: 3px; padding: 2px 6px; display: block; width: 100%;
-    box-sizing: border-box; margin-top: 2px;
+/* 连接线 */
+.timeline-info-line {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 2px;
+    height: 0;
+    background: var(--color-primary);
+    transform-origin: bottom center;
+    transform: scaleY(0);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.timeline-bubble .editable-field:focus {
-    border-color: var(--color-primary); outline: none;
+.timeline-info-card.show .timeline-info-line {
+    transform: scaleY(1);
+}
+.timeline-info-line::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary);
+    border-radius: 50%;
+}
+
+.timeline-info-card-header {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 0.95rem;
+    color: var(--color-primary-dark);
+    border-bottom: 1px dashed rgba(184,134,11,0.4);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.timeline-info-card-body {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    min-height: 1em;
+}
+.timeline-info-card-body.editable-field {
+    border: 1px solid rgba(184,134,11,0.3);
+    border-radius: 3px;
+    padding: 2px 6px;
+    min-height: 2em;
+}
+.timeline-info-card-body.editable-field:focus {
+    border-color: var(--color-primary);
+    outline: none;
     background: rgba(253,246,227,0.8);
+}
+
+.timeline-info-card .info-card-close {
+    cursor: pointer;
+    color: var(--color-accent);
+    font-size: 1rem;
+    line-height: 1;
+    margin-left: 8px;
+}
+.timeline-info-card .info-card-close:hover { color: #cc0000; }
+
+/* 卡片下方：三卡连线汇聚点 */
+.timeline-info-anchor {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(212,175,55,0.6);
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s ease 0.15s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s;
+}
+.timeline-info-container.active .timeline-info-anchor {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* 编辑模式下的保存按钮栏 */
+.timeline-info-savebar {
+    position: absolute;
+    display: none;
+    z-index: 101;
+}
+.timeline-info-savebar.show {
+    display: block;
+}
+.timeline-info-savebar button {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #1a0f2e;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 14px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    pointer-events: auto;
+}
+
+/* 卡片下方排列（替代之前气泡的 .below 逻辑） */
+.timeline-info-card.below .timeline-info-line {
+    bottom: auto;
+    top: 0;
+    transform-origin: top center;
+}
+.timeline-info-card.below .timeline-info-line::after {
+    bottom: auto;
+    top: -4px;
 }
 
 /* 响应式 */
@@ -652,6 +747,10 @@ body {
     .timeline-node { min-width: 55px; height: 55px; font-size: 0.75rem; padding: 4px 8px; }
     .timeline-node.shrunk { min-width: 32px; height: 32px; width: 32px; }
     .timeline-node.shrunk::after { font-size: 0.8rem; }
+    .timeline-info-card { width: 150px; padding: 8px 10px; max-height: 130px; }
+    .timeline-info-card-header { font-size: 0.8rem; }
+    .timeline-info-card-body { font-size: 0.72rem; }
+    .timeline-edit-switch { transform: scale(0.8); transform-origin: center; }
 }
 
 /* 强压控制多级UL列表不准内缩太长距离 */
