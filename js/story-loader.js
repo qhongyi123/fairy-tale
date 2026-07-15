@@ -423,10 +423,12 @@ window.toggleTimelineEditMode = function(chkEl) {
     }
 
     // 如果当前有卡片打开，刷新为编辑模式
-    if (__infoCardsStageName && document.getElementById('timeline-info-container').classList.contains('active')) {
-        var stageData = __timelineData[__infoCardsStageName];
-        if (stageData) {
-            window.showTimelinePopup(__infoCardsStageName, stageData);
+    if (__infoCardsStageName && __timelineData[__infoCardsStageName]) {
+        var cards = document.querySelectorAll('.timeline-info-card');
+        var anyVisible = false;
+        cards.forEach(function(c) { if (c.style.display === 'block') anyVisible = true; });
+        if (anyVisible) {
+            window.showTimelinePopup(__infoCardsStageName, __timelineData[__infoCardsStageName]);
         }
     }
 };
@@ -544,7 +546,6 @@ var __infoCardsDirty = false;
 var __infoCardsStageName = '';
 
 window.showTimelinePopup = function(stageName, stageData) {
-    var container = document.getElementById('timeline-info-container');
     var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0';
     var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
     var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
@@ -554,10 +555,10 @@ window.showTimelinePopup = function(stageName, stageData) {
     __infoCardsStageName = stageName;
     __infoCardsDirty = false;
 
-    // 填充三张卡片
     var cardDesc  = document.getElementById('info-card-desc');
     var cardCond  = document.getElementById('info-card-cond');
     var cardGuide = document.getElementById('info-card-guide');
+    var allCards = [cardDesc, cardCond, cardGuide];
 
     if (isEdit) {
         cardDesc.querySelector('.timeline-info-card-body').innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="desc" oninput="__infoCardsDirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + desc + '</div>';
@@ -591,15 +592,11 @@ window.showTimelinePopup = function(stageName, stageData) {
     var cardH = 130;
     var gap = 16;
     var lineLen = 55;
-
-    // 卡片水平排列：左(描述) 中(触发条件) 右(阶段指导)
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
 
-    // 默认放节点上方
     var cardTop = nodeY - cardH - lineLen;
     var placeBelow = (cardTop < 10);
-
     if (placeBelow) {
         cardTop = nodeY + nodeH + lineLen;
     }
@@ -610,16 +607,12 @@ window.showTimelinePopup = function(stageName, stageData) {
         { el: cardGuide, left: startX + (cardW + gap) * 2 }
     ];
 
-    // 先隐藏所有卡片，重置动画
-    [cardDesc, cardCond, cardGuide].forEach(function(c) {
+    // 重置动画状态
+    allCards.forEach(function(c) {
         c.classList.remove('show');
         c.classList.remove('below');
     });
 
-    container.style.display = 'block';
-    container.classList.add('active');
-
-    // 设置每张卡片的位置和连线
     positions.forEach(function(pos) {
         var card = pos.el;
         var line = card.querySelector('.timeline-info-line');
@@ -627,6 +620,7 @@ window.showTimelinePopup = function(stageName, stageData) {
         card.style.left = pos.left + 'px';
         card.style.top = cardTop + 'px';
         card.style.width = cardW + 'px';
+        card.style.display = 'block';
 
         if (placeBelow) {
             card.classList.add('below');
@@ -635,7 +629,6 @@ window.showTimelinePopup = function(stageName, stageData) {
             line.style.transformOrigin = 'bottom center';
             line.style.height = lineLen + 'px';
         } else {
-            card.classList.remove('below');
             line.style.bottom = (-lineLen) + 'px';
             line.style.top = 'auto';
             line.style.transformOrigin = 'top center';
@@ -643,7 +636,7 @@ window.showTimelinePopup = function(stageName, stageData) {
         }
     });
 
-    // 限制左右不溢出画布
+    // 限制左右不溢出
     var minX = 10;
     var maxX = canvas.scrollWidth - totalW - 10;
     if (startX < minX) {
@@ -658,9 +651,7 @@ window.showTimelinePopup = function(stageName, stageData) {
     void cardDesc.offsetHeight;
     requestAnimationFrame(function() {
         requestAnimationFrame(function() {
-            cardDesc.classList.add('show');
-            cardCond.classList.add('show');
-            cardGuide.classList.add('show');
+            allCards.forEach(function(c) { c.classList.add('show'); });
         });
     });
 
@@ -671,18 +662,15 @@ window.showTimelinePopup = function(stageName, stageData) {
         saveBar.id = 'timeline-info-savebar';
         saveBar.className = 'timeline-info-savebar';
         saveBar.innerHTML = '<button onclick="saveInfoCardEdit(\'' + stageName + '\')">\u2727 \u4FDD\u5B58</button>';
-        document.getElementById('timeline-canvas').appendChild(saveBar);
+        canvas.appendChild(saveBar);
     } else {
         saveBar.querySelector('button').setAttribute('onclick', 'saveInfoCardEdit(\'' + stageName + '\')');
     }
 
     if (isEdit) {
         saveBar.classList.add('show');
-        var firstCard = cardDesc;
-        var sl = parseFloat(firstCard.style.left);
-        var st = placeBelow ? (cardTop + cardH + 8) : (cardTop - 36);
-        saveBar.style.left = (sl + totalW - 70) + 'px';
-        saveBar.style.top = st + 'px';
+        saveBar.style.left = (startX + totalW - 70) + 'px';
+        saveBar.style.top = (placeBelow ? cardTop + cardH + 8 : cardTop - 36) + 'px';
     } else {
         saveBar.classList.remove('show');
     }
@@ -693,9 +681,12 @@ window.closeInfoCards = function() {
         if (!confirm('你有未保存的修改，确定要关闭吗？')) return;
     }
     __infoCardsDirty = false;
-    var container = document.getElementById('timeline-info-container');
-    container.classList.remove('active');
-    container.style.display = 'none';
+    var cards = document.querySelectorAll('.timeline-info-card');
+    cards.forEach(function(c) {
+        c.classList.remove('show');
+        c.classList.remove('below');
+        c.style.display = 'none';
+    });
     var saveBar = document.getElementById('timeline-info-savebar');
     if (saveBar) saveBar.classList.remove('show');
 };
