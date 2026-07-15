@@ -611,12 +611,30 @@ window.showTimelinePopup = function(stageName, stageData) {
     var nodeW = nodeRect.width, nodeH = nodeRect.height;
     var nodeCX = nodeX + nodeW / 2;
 
-    var cardW = 210, cardH = 130, gap = 16, margin = 20;
+    var cardW = 210, cardH = 130, gap = 16, margin = 60;
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
-    var cardTop = nodeY - cardH - margin;
-    var placeBelow = cardTop < 10;
-    if (placeBelow) cardTop = nodeY + nodeH + margin;
+
+    // 每张卡片的布局：索引 0(描述) 在上，1(触发条件) 在下，2(阶段指导) 在上
+    function _getCardLayout(i) {
+        var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
+        var above = (i !== 1);
+        var cy = above ? (nodeY - cardH - margin) : (nodeY + nodeH + margin);
+        // 连线：线从节点边缘出发
+        var lx = nodeCX;
+        var ly = above ? nodeY : (nodeY + nodeH);
+        // 卡片中心（线指向卡片靠节点一侧的中心）
+        var ccx = cx + cardW / 2;
+        var ccy = above ? (cy + cardH) : cy;
+        return { x: cx, y: cy, lineX: lx, lineY: ly, centerX: ccx, centerY: ccy, above: above };
+    }
+
+    var cardLayouts = [_getCardLayout(0), _getCardLayout(1), _getCardLayout(2)];
+
+    // 溢出调整（左/右不出画布）
+    var minX = 10, maxX = canvas.scrollWidth - totalW - 10;
+    if (startX < minX) { var sh = minX - startX; startX += sh; cardLayouts.forEach(function(lo) { lo.x += sh; lo.centerX += sh; }); }
+    else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardLayouts.forEach(function(lo) { lo.x -= sh; lo.centerX -= sh; }); }
 
     // 变暗所有已有的卡片组
     Object.keys(__cardSets).forEach(function(k) {
@@ -629,36 +647,28 @@ window.showTimelinePopup = function(stageName, stageData) {
     // 如果这组卡片已存在，直接变亮并重定位
     if (__cardSets[stageName]) {
         var set = __cardSets[stageName];
-        var cardCenters = [
-            { x: startX + cardW/2,      y: cardTop + cardH },
-            { x: startX + cardW + gap + cardW/2, y: cardTop + cardH },
-            { x: startX + (cardW + gap)*2 + cardW/2, y: cardTop + cardH }
-        ];
         set.cards.forEach(function(c, i) {
-            var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
-            c.style.left = cx + 'px';
-            c.style.top = cardTop + 'px';
+            var lo = cardLayouts[i];
+            c.style.left = lo.x + 'px';
+            c.style.top = lo.y + 'px';
             c.style.display = 'block';
             c.classList.remove('dimmed');
             void c.offsetHeight;
         });
         set.lines.forEach(function(l, i) {
-            var cc = cardCenters[i];
-            var nx = placeBelow ? nodeCX : nodeCX;
-            var ny = placeBelow ? (nodeY + nodeH) : nodeY;
-            var dx = cc.x - nx, dy = cc.y - ny;
-            l.style.left = nx + 'px';
-            l.style.top  = ny + 'px';
+            var lo = cardLayouts[i];
+            var dx = lo.centerX - lo.lineX, dy = lo.centerY - lo.lineY;
+            l.style.left = lo.lineX + 'px';
+            l.style.top  = lo.lineY + 'px';
             l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg)';
             l.querySelector('.timeline-connector-line-inner').style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
         });
-        // 重定位 X 按钮
+        // 重定位 X 按钮（放在中间卡片的连线上）
         if (set.xBtn) {
-            var midCC2 = cardCenters[1];
-            var midNX2 = nodeCX, midNY2 = placeBelow ? (nodeY + nodeH) : nodeY;
-            var midX2 = (midNX2 + midCC2.x) / 2, midY2 = (midNY2 + midCC2.y) / 2;
-            set.xBtn.style.left = (midX2 - 11) + 'px';
-            set.xBtn.style.top  = (midY2 - 11) + 'px';
+            var mlo = cardLayouts[1];
+            var mx2 = (mlo.lineX + mlo.centerX) / 2, my2 = (mlo.lineY + mlo.centerY) / 2;
+            set.xBtn.style.left = (mx2 - 11) + 'px';
+            set.xBtn.style.top  = (my2 - 11) + 'px';
         }
         void set.cards[0].offsetHeight;
         requestAnimationFrame(function() {
@@ -668,7 +678,6 @@ window.showTimelinePopup = function(stageName, stageData) {
                 if (set.xBtn) set.xBtn.classList.add('show');
             });
         });
-        set.placeBelow = placeBelow;
         set.dirty = false;
         __infoCardsDirty = false;
 
@@ -686,66 +695,42 @@ window.showTimelinePopup = function(stageName, stageData) {
                 }
             });
         }
-        _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow);
+        _updateSaveBar(isEdit, startX, totalW, cardLayouts);
         return;
     }
 
     // 新建卡片和连线
-    var cardCenters = [
-        { x: startX + cardW/2,      y: cardTop + cardH },
-        { x: startX + cardW + gap + cardW/2, y: cardTop + cardH },
-        { x: startX + (cardW + gap)*2 + cardW/2, y: cardTop + cardH }
-    ];
     var newCards = [
         _buildTimelineCard('\u63CF\u8FF0', desc, isEdit, 'desc', stageName),
         _buildTimelineCard('\u89E6\u53D1\u6761\u4EF6', cond, isEdit, 'cond', stageName),
         _buildTimelineCard('\u9636\u6BB5\u6307\u5BFC', guide, isEdit, 'guide', stageName)
     ];
 
-    var newLines = [];
-    cardCenters.forEach(function(cc) {
-        var nx = nodeCX;
-        var ny = placeBelow ? (nodeY + nodeH) : nodeY;
-        var l = _buildConnectorLine(nx, ny, cc.x, cc.y);
-        canvas.appendChild(l);
-        newLines.push(l);
-    });
-
-    var minX = 10, maxX = canvas.scrollWidth - totalW - 10;
-    if (startX < minX) { var sh = minX - startX; startX += sh; cardCenters.forEach(function(cc) { cc.x += sh; }); }
-    else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardCenters.forEach(function(cc) { cc.x -= sh; }); }
-
     newCards.forEach(function(c, i) {
-        var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
-        c.style.left = cx + 'px';
-        c.style.top = cardTop + 'px';
+        var lo = cardLayouts[i];
+        c.style.left = lo.x + 'px';
+        c.style.top = lo.y + 'px';
         c.style.width = cardW + 'px';
         c.style.display = 'block';
         canvas.appendChild(c);
     });
 
-    // 重算连线（可能因溢出调整了位置）
-    newLines.forEach(function(l, i) {
-        var cc = cardCenters[i];
-        var nx = nodeCX;
-        var ny = placeBelow ? (nodeY + nodeH) : nodeY;
-        var dx = cc.x - nx, dy = cc.y - ny;
-        l.style.left = nx + 'px';
-        l.style.top  = ny + 'px';
-        l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg)';
-        l.querySelector('.timeline-connector-line-inner').style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
+    var newLines = [];
+    cardLayouts.forEach(function(lo) {
+        var l = _buildConnectorLine(lo.lineX, lo.lineY, lo.centerX, lo.centerY);
+        canvas.appendChild(l);
+        newLines.push(l);
     });
 
-    // X 关闭按钮：放在中间连线的中点
-    var midCC = cardCenters[1];
-    var midNX = nodeCX, midNY = placeBelow ? (nodeY + nodeH) : nodeY;
-    var midX = (midNX + midCC.x) / 2, midY = (midNY + midCC.y) / 2;
+    // X 关闭按钮：放在中间卡片的连线上
+    var mlo = cardLayouts[1];
+    var mx = (mlo.lineX + mlo.centerX) / 2, my = (mlo.lineY + mlo.centerY) / 2;
     var xBtn = document.createElement('div');
     xBtn.className = 'timeline-close-x';
     xBtn.textContent = '\u2715';
     xBtn.title = '\u5173\u95ED\u8BE5\u8282\u70B9\u5361\u7247';
-    xBtn.style.left = (midX - 11) + 'px';
-    xBtn.style.top  = (midY - 11) + 'px';
+    xBtn.style.left = (mx - 11) + 'px';
+    xBtn.style.top  = (my - 11) + 'px';
     xBtn.onclick = function(e) { e.stopPropagation(); _closeOneCardSet(stageName); };
     xBtn.onmousedown = function(e) { e.stopPropagation(); };
     canvas.appendChild(xBtn);
@@ -753,7 +738,7 @@ window.showTimelinePopup = function(stageName, stageData) {
     __cardSets[stageName] = {
         cards: newCards, lines: newLines, xBtn: xBtn,
         stageName: stageName, isEdit: isEdit,
-        dirty: false, placeBelow: placeBelow
+        dirty: false
     };
     __infoCardsDirty = false;
 
@@ -766,10 +751,10 @@ window.showTimelinePopup = function(stageName, stageData) {
         });
     });
 
-    _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow);
+    _updateSaveBar(isEdit, startX, totalW, cardLayouts);
 };
 
-function _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow) {
+function _updateSaveBar(isEdit, startX, totalW, cardLayouts) {
     var saveBar = document.getElementById('timeline-info-savebar');
     if (!saveBar) {
         saveBar = document.createElement('div');
@@ -782,7 +767,8 @@ function _updateSaveBar(isEdit, startX, totalW, cardTop, cardH, placeBelow) {
     if (isEdit) {
         saveBar.classList.add('show');
         saveBar.style.left = (startX + totalW - 70) + 'px';
-        saveBar.style.top = (placeBelow ? cardTop + cardH + 8 : cardTop - 36) + 'px';
+        var aboveCard = cardLayouts[0].above ? cardLayouts[0] : cardLayouts[1];
+        saveBar.style.top = (aboveCard.y - 36) + 'px';
     } else {
         saveBar.classList.remove('show');
     }
