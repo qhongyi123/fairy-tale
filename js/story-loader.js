@@ -304,6 +304,7 @@ var __timelineTabId = '';
 var __timelineData = {};
 var __timelineAllOpen = false;
 var __timelineScrollTimer = null;
+var __timelineCloseTimer = null;
 
 window.switchStoryView = function(tabId, mode, btn) {
     var subPanel = btn.closest('.sub-panel');
@@ -347,6 +348,8 @@ window.switchStoryView = function(tabId, mode, btn) {
 
 function openTimelineOverlay() {
     __timelineAllOpen = false;
+    // 清除上一轮的卡片缓存，避免跨 tab 残留
+    closeInfoCards();
     var overlay = document.getElementById('timeline-overlay');
     document.getElementById('timeline-init-screen').style.display = '';
     document.getElementById('timeline-canvas').style.display = 'none';
@@ -473,6 +476,8 @@ function setupTimelineDrag() {
             var canvas = document.getElementById('timeline-canvas');
             if (canvas) canvas.style.cursor = 'grab';
             updateNodeVisibility();
+            // 拖拽滚动时收回所有卡片
+            if (Object.keys(__cardSets).length > 0) closeInfoCards();
         }
     });
 
@@ -480,6 +485,14 @@ function setupTimelineDrag() {
         if (!__timelineDragging) {
             if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
             __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
+        }
+        // 滚动时收回卡片（防抖）
+        if (__timelineCloseTimer) clearTimeout(__timelineCloseTimer);
+        if (Object.keys(__cardSets).length > 0) {
+            __timelineCloseTimer = setTimeout(function() {
+                closeInfoCards();
+                __timelineCloseTimer = null;
+            }, 200);
         }
     });
 
@@ -492,6 +505,7 @@ function setupTimelineDrag() {
 }
 
 function renderTimelineNodes() {
+    closeInfoCards(); // 清除上一个故事残留的卡片
     var container = document.getElementById('timeline-nodes');
     container.innerHTML = '';
     var keys = Object.keys(__timelineData);
@@ -665,12 +679,6 @@ window.showTimelinePopup = function(stageName, stageData) {
     // 如果这组卡片已存在，直接变亮并重定位
     if (__cardSets[stageName]) {
         var set = __cardSets[stageName];
-
-        // 冻结连线过渡动画，避免重定位时闪烁
-        set.lines.forEach(function(l) {
-            l.querySelector('.timeline-connector-line-inner').style.transition = 'none';
-        });
-
         set.cards.forEach(function(c, i) {
             var lo = cardLayouts[i];
             c.style.left = lo.x + 'px';
@@ -688,7 +696,6 @@ window.showTimelinePopup = function(stageName, stageData) {
             l.classList.remove('dimmed');
             l.classList.add('show');
         });
-
         // 重定位 X 按钮
         if (set.xBtn) {
             var mlo = cardLayouts[1];
@@ -696,15 +703,7 @@ window.showTimelinePopup = function(stageName, stageData) {
             set.xBtn.style.left = (mx2 - 11) + 'px';
             set.xBtn.style.top  = (my2 - 11) + 'px';
         }
-
-        // 强制提交无过渡的布局
-        void set.lines.length && set.lines[0].querySelector('.timeline-connector-line-inner').offsetHeight;
-
-        // 恢复过渡并触发卡片的淡入动画
-        set.lines.forEach(function(l) {
-            l.querySelector('.timeline-connector-line-inner').style.transition = '';
-        });
-
+        void set.cards[0].offsetHeight;
         requestAnimationFrame(function() {
             set.cards.forEach(function(c) { c.classList.add('show'); });
             if (set.xBtn) set.xBtn.classList.add('show');
