@@ -316,10 +316,15 @@ window.switchStoryView = function(tabId, mode, btn) {
     __timelineTabId = tabId;
     __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
 
-    // 直接用 data-complex-dict 选择器找到剧情阶段列表
+    // 直接用 data 选择器找到剧情阶段列表和描写指导
     var ul = subPanel.querySelector('ul[data-complex-dict="variable.\u5267\u60C5\u7EBF"]');
     var addBtn = ul ? ul.nextElementSibling : null;
     if (addBtn && !addBtn.classList.contains('add-custom-btn')) addBtn = null;
+
+    // 也找到描写指导区域
+    var guideBlock = subPanel.querySelector('.data-block:last-of-type');
+    var guideUI = guideBlock ? guideBlock.querySelector('ul[data-dict]') : null;
+    var guideAddBtn = guideBlock ? guideBlock.querySelector('.add-custom-btn') : null;
 
     if (mode === 'timeline') {
         if (ul) {
@@ -334,6 +339,18 @@ window.switchStoryView = function(tabId, mode, btn) {
             ul.style.display = 'none';
             if (addBtn) addBtn.style.display = 'none';
         }
+        // 隐藏描写指导区域
+        if (guideUI) guideUI.style.display = 'none';
+        if (guideAddBtn) guideAddBtn.style.display = 'none';
+    } else {
+        var prompt = document.getElementById('timeline-prompt-' + tabId);
+        if (ul) ul.style.display = '';
+        if (addBtn) addBtn.style.display = '';
+        if (prompt) prompt.remove();
+        // 恢复描写指导
+        if (guideUI) guideUI.style.display = '';
+        if (guideAddBtn) guideAddBtn.style.display = '';
+    }
     } else {
         // 恢复文档流
         var prompt = document.getElementById('timeline-prompt-' + tabId);
@@ -598,6 +615,26 @@ function _buildConnectorLine(x1, y1, x2, y2) {
     return outer;
 }
 
+window.showGuidancePopup = function() {
+    var guideData = originalDataCache[__timelineTabId] ? (originalDataCache[__timelineTabId].variable['\u63CF\u5199\u6307\u5BFC'] || {}) : {};
+    var keys = Object.keys(guideData);
+    var text = '';
+    if (keys.length === 0) {
+        text = '\u6682\u65E0\u63CF\u5199\u6307\u5BFC';
+    } else {
+        keys.forEach(function(k) {
+            text += '\u25C6 ' + k + '\n' + (guideData[k] || '') + '\n\n';
+        });
+    }
+    document.getElementById('zoomCardTitle').textContent = '\u63CF\u5199\u6307\u5BFC';
+    var bodyBox = document.getElementById('zoomCardBody');
+    bodyBox.removeAttribute('contenteditable');
+    bodyBox.className = 'zoom-card-body';
+    bodyBox.textContent = text;
+    document.getElementById('zoomCardFooter').style.display = 'none';
+    document.getElementById('zoomCardOverlay').classList.add('active');
+};
+
 window.showTimelinePopup = function(stageName, stageData) {
     var desc  = (stageData && stageData['\u63CF\u8FF0'])     ? stageData['\u63CF\u8FF0']     : '\u65E0';
     var cond  = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
@@ -614,8 +651,8 @@ window.showTimelinePopup = function(stageName, stageData) {
 
     var canvas = document.getElementById('timeline-canvas');
     var targetNode = null;
-    canvas.querySelectorAll('.timeline-node').forEach(function(n) {
-        if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
+    document.querySelectorAll('.timeline-node').forEach(function(n) {
+        if (n.textContent.trim() === stageName) targetNode = n;
     });
     if (!targetNode) return;
 
