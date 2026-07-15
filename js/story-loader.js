@@ -619,16 +619,12 @@ window.showTimelinePopup = function(stageName, stageData) {
     container.style.display = 'block';
     container.classList.add('active');
 
-    // 强制回流后设置位置
-    void container.offsetWidth;
-
+    // 设置每张卡片的位置和连线
     positions.forEach(function(pos) {
         var card = pos.el;
         var line = card.querySelector('.timeline-info-line');
 
-        // 卡片水平居中于其对应位置
-        var cardLeft = pos.left;
-        card.style.left = cardLeft + 'px';
+        card.style.left = pos.left + 'px';
         card.style.top = cardTop + 'px';
         card.style.width = cardW + 'px';
 
@@ -645,11 +641,6 @@ window.showTimelinePopup = function(stageName, stageData) {
             line.style.transformOrigin = 'top center';
             line.style.height = lineLen + 'px';
         }
-
-        // 触发动画
-        requestAnimationFrame(function() {
-            card.classList.add('show');
-        });
     });
 
     // 限制左右不溢出画布
@@ -662,6 +653,16 @@ window.showTimelinePopup = function(stageName, stageData) {
         var shift = startX - maxX;
         positions.forEach(function(p) { p.el.style.left = (parseFloat(p.el.style.left) - shift) + 'px'; });
     }
+
+    // 强制浏览器提交布局，然后触发动画
+    void cardDesc.offsetHeight;
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            cardDesc.classList.add('show');
+            cardCond.classList.add('show');
+            cardGuide.classList.add('show');
+        });
+    });
 
     // 编辑模式下显示保存按钮
     var saveBar = document.getElementById('timeline-info-savebar');

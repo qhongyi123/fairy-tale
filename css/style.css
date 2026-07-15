@@ -603,7 +603,8 @@ body {
 
 /* 信息卡片容器（从节点伸出线条连接三张卡片） */
 .timeline-info-container {
-    position: absolute; display: none; z-index: 100;
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    display: none; z-index: 100;
     pointer-events: none;
 }
 .timeline-info-container.active {
