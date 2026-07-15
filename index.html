@@ -294,24 +294,23 @@
     <div class="timeline-canvas" id="timeline-canvas" style="display:none;">
         <div class="timeline-nodes" id="timeline-nodes"></div>
     </div>
-</div>
-
-<script src="js/story-loader.js"></script>
-
-<!-- 卡片放大查看/编辑弹窗 -->
-<div class="zoom-card-overlay" id="zoomCardOverlay" onclick="closeZoomCard(false)">
-    <div class="zoom-card-box" onclick="event.stopPropagation()">
-        <div class="zoom-card-header">
-            <span id="zoomCardTitle"></span>
-            <span class="zoom-card-close" onclick="closeZoomCard()">&times;</span>
-        </div>
-        <div class="zoom-card-body" id="zoomCardBody"></div>
-        <div class="zoom-card-footer" id="zoomCardFooter">
-            <button onclick="closeZoomCard(true)">&#10022; 确 认 &#10022;</button>
-            <button onclick="closeZoomCard(false)" style="background:rgba(253,246,227,0.4);border:1px solid rgba(139,90,43,0.5);color:#8b5a2b;box-shadow:none;">取 消</button>
+    <!-- 卡片放大查看/编辑弹窗（在脉络式覆盖层内部） -->
+    <div class="zoom-card-overlay" id="zoomCardOverlay" onclick="closeZoomCard(false)">
+        <div class="zoom-card-box" onclick="event.stopPropagation()">
+            <div class="zoom-card-header">
+                <span id="zoomCardTitle"></span>
+                <span class="zoom-card-close" onclick="closeZoomCard(false)">&times;</span>
+            </div>
+            <div class="zoom-card-body" id="zoomCardBody"></div>
+            <div class="zoom-card-footer" id="zoomCardFooter">
+                <button onclick="closeZoomCard(true)">&#10022; 确 认 &#10022;</button>
+                <button onclick="closeZoomCard(false)" style="background:rgba(253,246,227,0.4);border:1px solid rgba(139,90,43,0.5);color:#8b5a2b;box-shadow:none;">取 消</button>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="js/story-loader.js"></script>
 
 </body>
 </html>
