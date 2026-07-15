@@ -318,13 +318,12 @@ window.switchStoryView = function(tabId, mode, btn) {
     __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
 
     // 找到剧情阶段的 data-block（包含 ul[data-complex-dict] 的那个）
-    var storylineBlock = subPanel.querySelector('.data-block:first-of-type');
+    var storylineBlock = subPanel.querySelector('.data-block');
     if (!storylineBlock) return;
     var ul = storylineBlock.querySelector('ul[data-complex-dict]');
     var addBtn = storylineBlock.querySelector('.add-custom-btn');
 
     if (mode === 'timeline') {
-        // 隐藏文档流内容，显示脉络式按钮
         if (ul) {
             if (!document.getElementById('timeline-prompt-' + tabId)) {
                 var prompt = document.createElement('div');
@@ -505,8 +504,9 @@ function setupTimelineDrag() {
 }
 
 function renderTimelineNodes() {
-    closeInfoCards(); // 清除上一个故事残留的卡片
+    closeInfoCards();
     var container = document.getElementById('timeline-nodes');
+    if (!container) return;
     container.innerHTML = '';
     var keys = Object.keys(__timelineData);
     if (keys.length === 0) {
@@ -623,13 +623,14 @@ window.showTimelinePopup = function(stageName, stageData) {
     var isEdit = tabEl && tabEl.classList.contains('is-edit-mode');
     __infoCardsStageName = stageName;
 
-    // 如果该节点的卡片已激活，不做任何事
-    if (__cardSets[stageName] && __cardSets[stageName].cards[0].style.display === 'block' &&
+    // 如果该节点的卡片已激活且仍在 DOM 中，不做任何事
+    if (__cardSets[stageName] && __cardSets[stageName].cards[0] &&
+        document.body.contains(__cardSets[stageName].cards[0]) &&
         !__cardSets[stageName].cards[0].classList.contains('dimmed')) return;
 
     var canvas = document.getElementById('timeline-canvas');
     var targetNode = null;
-    document.querySelectorAll('.timeline-node').forEach(function(n) {
+    canvas.querySelectorAll('.timeline-node').forEach(function(n) {
         if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
     });
     if (!targetNode) return;
