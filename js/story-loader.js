@@ -304,41 +304,50 @@ var __timelineTabId = '';
 var __timelineData = {};
 var __timelineAllOpen = false;
 var __timelineScrollTimer = null;
-var __savedSubPanels = {};
 
 window.switchStoryView = function(tabId, mode, btn) {
     var subPanel = btn.closest('.sub-panel');
     if (!subPanel) return;
 
-    // 同步按钮 active 状态
     var allBtns = btn.parentElement.querySelectorAll('.view-mode-btn');
     allBtns.forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
 
+    __timelineTabId = tabId;
+    __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
+
+    // 找到剧情阶段的 data-block（包含 ul[data-complex-dict] 的那个）
+    var storylineBlock = subPanel.querySelector('.data-block:first-of-type');
+    if (!storylineBlock) return;
+    var ul = storylineBlock.querySelector('ul[data-complex-dict]');
+    var addBtn = storylineBlock.querySelector('.add-custom-btn');
+
     if (mode === 'timeline') {
-        // 保存原始内容并替换为"点击查看脉络式"
-        if (!__savedSubPanels[tabId]) {
-            __savedSubPanels[tabId] = subPanel.innerHTML;
+        // 隐藏文档流内容，显示脉络式按钮
+        if (ul) {
+            if (!document.getElementById('timeline-prompt-' + tabId)) {
+                var prompt = document.createElement('div');
+                prompt.id = 'timeline-prompt-' + tabId;
+                prompt.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;margin-top:10px;';
+                prompt.innerHTML = '<p style="color:var(--color-accent);font-size:0.9rem;margin-bottom:16px;">横屏查看脉络效果更佳</p>' +
+                    '<button onclick="openTimelineOverlay()" style="background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-primary-dark) 100%);color:#1a0f2e;font-family:\'Ma Shan Zheng\',cursive;font-size:1.4rem;border:none;border-radius:8px;padding:14px 40px;cursor:pointer;box-shadow:0 4px 15px rgba(212,175,55,0.4);transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">\u2726 \u70B9\u51FB\u67E5\u770B\u8109\u7EDC \u2726</button>';
+                ul.parentNode.insertBefore(prompt, ul.nextSibling);
+            }
+            ul.style.display = 'none';
+            if (addBtn) addBtn.style.display = 'none';
         }
-        __timelineTabId = tabId;
-        __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
-        subPanel.innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:30px;">' +
-            '<p style="color:var(--color-accent); font-size:0.9rem; margin-bottom:16px;">横屏查看脉络效果更佳</p>' +
-            '<button onclick="openTimelineOverlay()" style="background:linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color:#1a0f2e; font-family:\'Ma Shan Zheng\',cursive; font-size:1.4rem; border:none; border-radius:8px; padding:14px 40px; cursor:pointer; box-shadow:0 4px 15px rgba(212,175,55,0.4); transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">\u2726 \u70B9\u51FB\u67E5\u770B\u8109\u7EDC \u2726</button>' +
-        '</div>';
     } else {
-        // 恢复文档流原始内容
-        if (__savedSubPanels[tabId]) {
-            subPanel.innerHTML = __savedSubPanels[tabId];
-            delete __savedSubPanels[tabId];
-        }
+        // 恢复文档流
+        var prompt = document.getElementById('timeline-prompt-' + tabId);
+        if (ul) ul.style.display = '';
+        if (addBtn) addBtn.style.display = '';
+        if (prompt) prompt.remove();
     }
 };
 
 function openTimelineOverlay() {
     __timelineAllOpen = false;
     var overlay = document.getElementById('timeline-overlay');
-    document.getElementById('timeline-expand-btn').textContent = '\u26F6 \u5168\u5F00';
     document.getElementById('timeline-init-screen').style.display = '';
     document.getElementById('timeline-canvas').style.display = 'none';
     overlay.classList.add('active');
@@ -645,24 +654,29 @@ window.showTimelinePopup = function(stageName, stageData) {
     if (startX < minX) { var sh = minX - startX; startX += sh; cardLayouts.forEach(function(lo) { lo.x += sh; lo.centerX += sh; }); }
     else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardLayouts.forEach(function(lo) { lo.x -= sh; lo.centerX -= sh; }); }
 
-    // 变暗所有已有的卡片组
+    // 变暗所有已有的卡片组（保留连线但变暗）
     Object.keys(__cardSets).forEach(function(k) {
         var s = __cardSets[k];
         s.cards.forEach(function(c) { c.classList.add('dimmed'); c.classList.remove('show'); });
-        s.lines.forEach(function(l) { l.classList.remove('show'); });
+        s.lines.forEach(function(l) { l.classList.add('dimmed'); });
         if (s.xBtn) s.xBtn.classList.remove('show');
     });
 
     // 如果这组卡片已存在，直接变亮并重定位
     if (__cardSets[stageName]) {
         var set = __cardSets[stageName];
+
+        // 冻结连线过渡动画，避免重定位时闪烁
+        set.lines.forEach(function(l) {
+            l.querySelector('.timeline-connector-line-inner').style.transition = 'none';
+        });
+
         set.cards.forEach(function(c, i) {
             var lo = cardLayouts[i];
             c.style.left = lo.x + 'px';
             c.style.top = lo.y + 'px';
             c.style.display = 'block';
             c.classList.remove('dimmed');
-            void c.offsetHeight;
         });
         set.lines.forEach(function(l, i) {
             var lo = cardLayouts[i];
@@ -671,21 +685,29 @@ window.showTimelinePopup = function(stageName, stageData) {
             l.style.top  = lo.lineY + 'px';
             l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg)';
             l.querySelector('.timeline-connector-line-inner').style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
+            l.classList.remove('dimmed');
+            l.classList.add('show');
         });
-        // 重定位 X 按钮（放在中间卡片的连线上）
+
+        // 重定位 X 按钮
         if (set.xBtn) {
             var mlo = cardLayouts[1];
             var mx2 = (mlo.lineX + mlo.centerX) / 2, my2 = (mlo.lineY + mlo.centerY) / 2;
             set.xBtn.style.left = (mx2 - 11) + 'px';
             set.xBtn.style.top  = (my2 - 11) + 'px';
         }
-        void set.cards[0].offsetHeight;
+
+        // 强制提交无过渡的布局
+        void set.lines.length && set.lines[0].querySelector('.timeline-connector-line-inner').offsetHeight;
+
+        // 恢复过渡并触发卡片的淡入动画
+        set.lines.forEach(function(l) {
+            l.querySelector('.timeline-connector-line-inner').style.transition = '';
+        });
+
         requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-                set.cards.forEach(function(c) { c.classList.add('show'); });
-                set.lines.forEach(function(l) { l.classList.add('show'); });
-                if (set.xBtn) set.xBtn.classList.add('show');
-            });
+            set.cards.forEach(function(c) { c.classList.add('show'); });
+            if (set.xBtn) set.xBtn.classList.add('show');
         });
         set.dirty = false;
         __infoCardsDirty = false;
@@ -805,7 +827,7 @@ function _closeOneCardSet(stageName) {
         var lastKey = remaining[remaining.length - 1];
         var lastSet = __cardSets[lastKey];
         lastSet.cards.forEach(function(c) { c.classList.remove('dimmed'); c.classList.add('show'); });
-        lastSet.lines.forEach(function(l) { l.classList.add('show'); });
+        lastSet.lines.forEach(function(l) { l.classList.remove('dimmed'); l.classList.add('show'); });
         if (lastSet.xBtn) lastSet.xBtn.classList.add('show');
         lastSet.dirty = false;
         __infoCardsStageName = lastKey;
