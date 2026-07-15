@@ -104,8 +104,15 @@ async function initDynamicTabs() {
                     if(rt["民俗风情"]) {
                         Object.keys(rt["民俗风情"]).forEach(function(ck) {
                             customsHTML += '<div class="custom-row custom-item" data-ditem><span class="editable-key editable-field" style="color:#8b5a2b;" data-dkey>' + mtH(ck) + '</span>:<span class="editable-field" data-dval>' + mtH(rt["民俗风情"][ck]) + '</span></div>';
-                        });
-                    }
+    });
+
+    // 点击画布空白区域关闭所有卡片
+    canvas.addEventListener('click', function(e) {
+        if (e.target === canvas || e.target.classList.contains('timeline-nodes')) {
+            closeInfoCards();
+        }
+    });
+}
                     customsHTML += '<div class="add-custom-btn" onclick="addNewCustom(this)">+ 添加风情词条</div>';
                     regionsHTML += '<div class="area-box area-item"><div style="font-weight:bold; color:var(--color-primary-dark); margin-bottom:5px; border-bottom:1px dashed rgba(184,134,11,0.3); padding-bottom:5px;">\u27A4 <span class="editable-field editable-key region-name" style="color:var(--color-accent);">' + mtH(rk) + '</span></div><div class="custom-row" style="margin-bottom:8px;"><span class="param-label" style="flex-shrink:0;">描述:</span><div class="editable-field editable-textarea region-desc" style="flex:1;">' + mtH(rt["描述"] || '') + '</div></div><div class="customs-box"><div class="param-label" style="display:block; margin-bottom:4px;">\u2756 民俗风情:</div>' + customsHTML + '</div></div>';
                 });
@@ -304,7 +311,6 @@ var __timelineTabId = '';
 var __timelineData = {};
 var __timelineAllOpen = false;
 var __timelineScrollTimer = null;
-var __timelineCloseTimer = null;
 
 window.switchStoryView = function(tabId, mode, btn) {
     var subPanel = btn.closest('.sub-panel');
@@ -317,11 +323,10 @@ window.switchStoryView = function(tabId, mode, btn) {
     __timelineTabId = tabId;
     __timelineData = originalDataCache[tabId] ? (originalDataCache[tabId].variable['\u5267\u60C5\u7EBF'] || {}) : {};
 
-    // 找到剧情阶段的 data-block（包含 ul[data-complex-dict] 的那个）
-    var storylineBlock = subPanel.querySelector('.data-block');
-    if (!storylineBlock) return;
-    var ul = storylineBlock.querySelector('ul[data-complex-dict]');
-    var addBtn = storylineBlock.querySelector('.add-custom-btn');
+    // 直接用 data-complex-dict 选择器找到剧情阶段列表
+    var ul = subPanel.querySelector('ul[data-complex-dict="variable.\u5267\u60C5\u7EBF"]');
+    var addBtn = ul ? ul.nextElementSibling : null;
+    if (addBtn && !addBtn.classList.contains('add-custom-btn')) addBtn = null;
 
     if (mode === 'timeline') {
         if (ul) {
@@ -454,6 +459,8 @@ function setupTimelineDrag() {
     canvas.dataset.dragReady = '1';
 
     canvas.addEventListener('mousedown', function(e) {
+        // 不拦截 .timeline-node 上的点击（节点有自己的 click 处理）
+        if (e.target.closest && e.target.closest('.timeline-node')) return;
         __timelineDragging = true;
         __timelineStartX = e.pageX - canvas.offsetLeft;
         __timelineScrollLeft = canvas.scrollLeft;
@@ -475,8 +482,6 @@ function setupTimelineDrag() {
             var canvas = document.getElementById('timeline-canvas');
             if (canvas) canvas.style.cursor = 'grab';
             updateNodeVisibility();
-            // 拖拽滚动时收回所有卡片
-            if (Object.keys(__cardSets).length > 0) closeInfoCards();
         }
     });
 
@@ -484,21 +489,6 @@ function setupTimelineDrag() {
         if (!__timelineDragging) {
             if (__timelineScrollTimer) clearTimeout(__timelineScrollTimer);
             __timelineScrollTimer = setTimeout(updateNodeVisibility, 80);
-        }
-        // 滚动时收回卡片（防抖）
-        if (__timelineCloseTimer) clearTimeout(__timelineCloseTimer);
-        if (Object.keys(__cardSets).length > 0) {
-            __timelineCloseTimer = setTimeout(function() {
-                closeInfoCards();
-                __timelineCloseTimer = null;
-            }, 200);
-        }
-    });
-
-    // 点击画布空白区域关闭卡片
-    canvas.addEventListener('click', function(e) {
-        if (e.target === canvas || e.target.classList.contains('timeline-nodes')) {
-            closeInfoCards();
         }
     });
 }
@@ -518,7 +508,8 @@ function renderTimelineNodes() {
         var node = document.createElement('div');
         node.className = 'timeline-node';
         node.textContent = key;
-        node.addEventListener('click', function() {
+        node.addEventListener('click', function(e) {
+            e.stopPropagation();
             showTimelinePopup(key, __timelineData[key]);
         });
         container.appendChild(node);
