@@ -565,16 +565,21 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
 }
 
 function _buildConnectorLine(x1, y1, x2, y2) {
-    var line = document.createElement('div');
-    line.className = 'timeline-connector-line';
+    var outer = document.createElement('div');
+    outer.className = 'timeline-connector-line';
     var dx = x2 - x1, dy = y2 - y1;
     var len = Math.sqrt(dx * dx + dy * dy);
     var deg = Math.atan2(dy, dx) * 180 / Math.PI;
-    line.style.left = x1 + 'px';
-    line.style.top  = y1 + 'px';
-    line.style.width = len + 'px';
-    line.style.transform = 'rotate(' + deg + 'deg) scaleX(0)';
-    return line;
+    outer.style.left = x1 + 'px';
+    outer.style.top  = y1 + 'px';
+    outer.style.transform = 'rotate(' + deg + 'deg)';
+
+    var inner = document.createElement('div');
+    inner.className = 'timeline-connector-line-inner';
+    inner.style.width = len + 'px';
+    outer.appendChild(inner);
+
+    return outer;
 }
 
 window.showTimelinePopup = function(stageName, stageData) {
@@ -644,8 +649,8 @@ window.showTimelinePopup = function(stageName, stageData) {
             var dx = cc.x - nx, dy = cc.y - ny;
             l.style.left = nx + 'px';
             l.style.top  = ny + 'px';
-            l.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
-            l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg) scaleX(0)';
+            l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg)';
+            l.querySelector('.timeline-connector-line-inner').style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
         });
         // 重定位 X 按钮
         if (set.xBtn) {
@@ -727,8 +732,8 @@ window.showTimelinePopup = function(stageName, stageData) {
         var dx = cc.x - nx, dy = cc.y - ny;
         l.style.left = nx + 'px';
         l.style.top  = ny + 'px';
-        l.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
-        l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg) scaleX(0)';
+        l.style.transform = 'rotate(' + (Math.atan2(dy, dx) * 180 / Math.PI) + 'deg)';
+        l.querySelector('.timeline-connector-line-inner').style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
     });
 
     // X 关闭按钮：放在中间连线的中点
