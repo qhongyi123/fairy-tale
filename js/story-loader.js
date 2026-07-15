@@ -356,6 +356,10 @@ function openTimelineOverlay() {
 }
 
 window.closeTimeline = function() {
+    if (__bubbleDirty) {
+        if (!confirm('气泡中有未保存的修改，确定要退出脉络式吗？')) return;
+    }
+    __bubbleDirty = false;
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         if (document.exitFullscreen) {
             document.exitFullscreen();
@@ -371,11 +375,13 @@ window.closeTimeline = function() {
 // 监听 ESC 或系统退出全屏时同步关闭覆盖层
 document.addEventListener('fullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        __bubbleDirty = false;
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
 document.addEventListener('webkitfullscreenchange', function() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        __bubbleDirty = false;
         document.getElementById('timeline-overlay').classList.remove('active');
     }
 });
@@ -489,49 +495,92 @@ window.toggleTimelineExpand = function() {
     }
 };
 
+var __bubbleDirty = false;
+var __bubbleStageName = '';
+
 window.showTimelinePopup = function(stageName, stageData) {
-    var popup = document.getElementById('timeline-popup-overlay');
-    var content = document.getElementById('timeline-popup-content');
-    var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0\u63CF\u8FF0';
+    var bubble = document.getElementById('timeline-bubble');
+    var desc = (stageData && stageData['\u63CF\u8FF0']) ? stageData['\u63CF\u8FF0'] : '\u65E0';
     var cond = (stageData && stageData['\u89E6\u53D1\u6761\u4EF6']) ? stageData['\u89E6\u53D1\u6761\u4EF6'] : '\u65E0';
     var guide = (stageData && stageData['\u9636\u6BB5\u6307\u5BFC']) ? stageData['\u9636\u6BB5\u6307\u5BFC'] : '\u65E0';
 
-    // 检测编辑模式
     var tabEl = document.getElementById(__timelineTabId);
     var isEdit = tabEl && tabEl.classList.contains('is-edit-mode');
-    var editAttr = isEdit ? ' contenteditable="true"' : '';
+    __bubbleStageName = stageName;
+    __bubbleDirty = false;
+
+    var html = '';
+    html += '<div class="timeline-bubble-header">';
+    html += '<span class="timeline-bubble-title">' + mtH(stageName) + (isEdit ? ' <span style="font-size:0.7rem;color:#cc0000;">(编辑)</span>' : '') + '</span>';
+    html += '<span class="timeline-bubble-close" onclick="closeBubble()">&times;</span>';
+    html += '</div>';
 
     if (isEdit) {
-        content.innerHTML =
-            '<div class="timeline-popup-title">' + mtH(stageName) + ' <span style="font-size:0.7rem;color:#cc0000;">(\u7F16\u8F91\u6A21\u5F0F)</span></div>' +
-            '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div class="editable-field editable-textarea" data-field="desc"' + editAttr + '>' + mtH(desc) + '</div></div>' +
-            '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div class="editable-field editable-textarea" data-field="cond"' + editAttr + '>' + mtH(cond) + '</div></div>' +
-            '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div class="editable-field editable-textarea" data-field="guide"' + editAttr + '>' + mtH(guide) + '</div></div>' +
-            '<div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">' +
-                '<button onclick="saveTimelineEdit(\'' + stageName + '\')" style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark)); color:#1a0f2e; border:none; border-radius:4px; padding:6px 16px; cursor:pointer; font-weight:bold;">\u2727 \u4FDD\u5B58\u4FEE\u6539 \u2727</button>' +
-            '</div>';
+        html += '<div class="timeline-bubble-field"><strong>描述</strong><div class="editable-field" contenteditable="true" data-field="desc" oninput="__bubbleDirty=true">' + desc + '</div></div>';
+        html += '<div class="timeline-bubble-field"><strong>触发条件</strong><div class="editable-field" contenteditable="true" data-field="cond" oninput="__bubbleDirty=true">' + cond + '</div></div>';
+        html += '<div class="timeline-bubble-field"><strong>阶段指导</strong><div class="editable-field" contenteditable="true" data-field="guide" oninput="__bubbleDirty=true">' + guide + '</div></div>';
+        html += '<div style="display:flex; gap:6px; justify-content:flex-end; margin-top:8px;">';
+        html += '<button onclick="saveBubbleEdit(\'' + stageName + '\')" style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark)); color:#1a0f2e; border:none; border-radius:4px; padding:4px 14px; cursor:pointer; font-size:0.8rem; font-weight:bold;">\u2727 \u4FDD\u5B58</button>';
+        html += '</div>';
     } else {
-        content.innerHTML =
-            '<div class="timeline-popup-title">' + mtH(stageName) + '</div>' +
-            '<div class="timeline-popup-field"><strong>\u63CF\u8FF0</strong><div>' + mtH(desc) + '</div></div>' +
-            '<div class="timeline-popup-field"><strong>\u89E6\u53D1\u6761\u4EF6</strong><div>' + mtH(cond) + '</div></div>' +
-            '<div class="timeline-popup-field"><strong>\u9636\u6BB5\u6307\u5BFC</strong><div>' + mtH(guide) + '</div></div>';
+        html += '<div class="timeline-bubble-field"><strong>描述</strong><div>' + mtH(desc) + '</div></div>';
+        html += '<div class="timeline-bubble-field"><strong>触发条件</strong><div>' + mtH(cond) + '</div></div>';
+        html += '<div class="timeline-bubble-field"><strong>阶段指导</strong><div>' + mtH(guide) + '</div></div>';
     }
-    popup.classList.add('active');
+
+    bubble.innerHTML = html;
+    bubble.style.display = 'block';
+
+    // 定位气泡：找到对应节点
+    var nodes = document.querySelectorAll('.timeline-node');
+    var targetNode = null;
+    nodes.forEach(function(n) {
+        if (n.textContent.indexOf(stageName) !== -1) targetNode = n;
+    });
+    if (!targetNode) return;
+
+    var canvas = document.getElementById('timeline-canvas');
+    var nodeRect = targetNode.getBoundingClientRect();
+    var canvasRect = canvas.getBoundingClientRect();
+    var scrollLeft = canvas.scrollLeft;
+
+    // 默认放在节点上方
+    var left = nodeRect.left - canvasRect.left + scrollLeft + nodeRect.width / 2 - 170;
+    var top = nodeRect.top - canvasRect.top + scrollLeft - 10;
+
+    // 如果上方空间不够，放下方
+    if (top < 220) {
+        top = nodeRect.bottom - canvasRect.top;
+        bubble.classList.add('below');
+    } else {
+        bubble.classList.remove('below');
+    }
+
+    // 限制左右不溢出
+    if (left < 10) left = 10;
+    if (left + 340 > canvas.scrollWidth) left = canvas.scrollWidth - 350;
+
+    bubble.style.left = left + 'px';
+    bubble.style.top = top + 'px';
 };
 
-window.saveTimelineEdit = function(stageName) {
+window.closeBubble = function() {
+    if (__bubbleDirty) {
+        if (!confirm('你有未保存的修改，确定要关闭吗？')) return;
+    }
+    __bubbleDirty = false;
+    var bubble = document.getElementById('timeline-bubble');
+    bubble.style.display = 'none';
+};
+
+window.saveBubbleEdit = function(stageName) {
     var tabEl = document.getElementById(__timelineTabId);
     if (!tabEl) return;
-    var dictUl = tabEl.querySelector('ul[data-complex-dict="variable.\u5267\u60C5\u7EBF"]');
-    if (!dictUl) return;
+    var bubble = document.getElementById('timeline-bubble');
+    var newDesc = (bubble.querySelector('[data-field="desc"]') || {}).innerText || '';
+    var newCond = (bubble.querySelector('[data-field="cond"]') || {}).innerText || '';
+    var newGuide = (bubble.querySelector('[data-field="guide"]') || {}).innerText || '';
 
-    var popup = document.getElementById('timeline-popup-content');
-    var newDesc = window.extractMdFromNode(popup.querySelector('[data-field="desc"]')) || '';
-    var newCond = window.extractMdFromNode(popup.querySelector('[data-field="cond"]')) || '';
-    var newGuide = window.extractMdFromNode(popup.querySelector('[data-field="guide"]')) || '';
-
-    // 更新 originalDataCache
     if (originalDataCache[__timelineTabId] && originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF']) {
         originalDataCache[__timelineTabId].variable['\u5267\u60C5\u7EBF'][stageName] = {
             '\u63CF\u8FF0': newDesc.trim(),
@@ -540,37 +589,31 @@ window.saveTimelineEdit = function(stageName) {
         };
     }
 
-    // 更新 DOM 中的对应内容
-    var stageItems = dictUl.querySelectorAll('li[data-citem]');
-    stageItems.forEach(function(item) {
-        var ckey = item.querySelector('[data-ckey]');
-        if (ckey && ckey.textContent.trim() === stageName) {
-            var rows = item.querySelectorAll('.custom-row');
-            rows.forEach(function(row) {
-                var skey = row.querySelector('[data-skey]');
-                var sval = row.querySelector('[data-sval]');
-                if (skey && sval) {
-                    var keyText = skey.textContent.trim();
-                    if (keyText === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc.trim());
-                    else if (keyText === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond.trim());
-                    else if (keyText === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide.trim());
-                }
-            });
-        }
-    });
-
-    closeTimelinePopup();
-};
-
-window.closeTimelinePopup = function() {
-    document.getElementById('timeline-popup-overlay').classList.remove('active');
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    var popupOverlay = document.getElementById('timeline-popup-overlay');
-    if (popupOverlay) {
-        popupOverlay.addEventListener('click', function(e) {
-            if (e.target === popupOverlay) { closeTimelinePopup(); }
+    var dictUl = tabEl.querySelector('ul[data-complex-dict]');
+    if (dictUl) {
+        var stageItems = dictUl.querySelectorAll('li[data-citem]');
+        stageItems.forEach(function(item) {
+            var ckey = item.querySelector('[data-ckey]');
+            if (ckey && ckey.textContent.trim() === stageName) {
+                var rows = item.querySelectorAll('.custom-row');
+                rows.forEach(function(row) {
+                    var skey = row.querySelector('[data-skey]');
+                    var sval = row.querySelector('[data-sval]');
+                    if (skey && sval) {
+                        var kt = skey.textContent.trim();
+                        if (kt === '\u63CF\u8FF0') sval.innerHTML = mtH(newDesc.trim());
+                        else if (kt === '\u89E6\u53D1\u6761\u4EF6') sval.innerHTML = mtH(newCond.trim());
+                        else if (kt === '\u9636\u6BB5\u6307\u5BFC') sval.innerHTML = mtH(newGuide.trim());
+                    }
+                });
+            }
         });
     }
-});
+
+    __bubbleDirty = false;
+    window.closeBubble = function() {
+        __bubbleDirty = false;
+        document.getElementById('timeline-bubble').style.display = 'none';
+    };
+    closeBubble();
+};

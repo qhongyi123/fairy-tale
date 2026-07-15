@@ -556,6 +556,12 @@ body {
     position: relative; z-index: 2;
     min-width: max-content; padding: 0 40px;
 }
+.timeline-nodes::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%;
+    height: 3px; z-index: 0;
+    background: linear-gradient(90deg, transparent 0%, var(--color-primary-dark) 10%, var(--color-primary) 50%, var(--color-primary-dark) 90%, transparent 100%);
+    transform: translateY(-50%); pointer-events: none;
+}
 
 .timeline-node {
     position: relative; display: flex; align-items: center; justify-content: center;
@@ -588,31 +594,57 @@ body {
 }
 .timeline-node.expand-all::after { content: none; }
 
-.timeline-popup-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(26, 15, 46, 0.8); z-index: 10001;
-    display: none; justify-content: center; align-items: center;
-}
-.timeline-popup-overlay.active { display: flex; }
-
-.timeline-popup-box {
+/* 气泡弹窗（从节点伸出） */
+.timeline-bubble {
+    position: absolute; display: none; z-index: 100;
     background: var(--bg-content);
     background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>');
-    border: 3px solid var(--color-primary-dark); border-radius: 12px;
-    box-shadow: 0 15px 45px rgba(0,0,0,0.8);
-    padding: 25px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
-    position: relative; color: var(--color-text-dark);
+    border: 2px solid var(--color-primary-dark); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    padding: 16px; width: 340px; max-height: 400px; overflow-y: auto;
+    color: var(--color-text-dark);
 }
-.timeline-popup-close {
-    position: absolute; top: 8px; right: 14px;
-    font-size: 1.4rem; cursor: pointer; color: var(--color-accent);
-    transition: color 0.2s;
+.timeline-bubble::before {
+    content: ''; position: absolute;
+    left: 50%; transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-bottom-color: var(--color-primary-dark);
+    top: -16px;
 }
-.timeline-popup-close:hover { color: #cc0000; }
-.timeline-popup-title { font-family: 'Ma Shan Zheng', cursive; font-size: 1.3rem; color: var(--color-primary-dark); border-bottom: 2px dashed rgba(212,175,55,0.4); padding-bottom: 8px; margin-bottom: 15px; }
-.timeline-popup-field { margin-bottom: 12px; }
-.timeline-popup-field strong { color: var(--color-accent); display: block; margin-bottom: 4px; }
-.timeline-popup-field div { font-size: 0.9rem; line-height: 1.6; }
+.timeline-bubble.below::before {
+    top: auto; bottom: -16px;
+    border-bottom-color: transparent;
+    border-top-color: var(--color-primary-dark);
+}
+.timeline-bubble-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1px dashed rgba(184,134,11,0.4);
+}
+.timeline-bubble-title {
+    font-family: 'Ma Shan Zheng', cursive; font-size: 1.15rem;
+    color: var(--color-primary-dark);
+}
+.timeline-bubble-close {
+    cursor: pointer; color: var(--color-accent); font-size: 1.2rem;
+    line-height: 1;
+}
+.timeline-bubble-close:hover { color: #cc0000; }
+.timeline-bubble-field { margin-bottom: 10px; }
+.timeline-bubble-field strong {
+    color: var(--color-accent); font-size: 0.85rem; display: block; margin-bottom: 3px;
+}
+.timeline-bubble-field div { font-size: 0.85rem; line-height: 1.5; }
+
+.timeline-bubble .editable-field {
+    min-height: 1em; border: 1px solid rgba(184,134,11,0.3);
+    border-radius: 3px; padding: 2px 6px; display: block; width: 100%;
+    box-sizing: border-box; margin-top: 2px;
+}
+.timeline-bubble .editable-field:focus {
+    border-color: var(--color-primary); outline: none;
+    background: rgba(253,246,227,0.8);
+}
 
 /* 响应式 */
 @media (max-width: 768px) {
