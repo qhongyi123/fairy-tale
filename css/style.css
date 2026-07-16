@@ -831,6 +831,7 @@ body {
     .timeline-node { min-width: 70px; height: 55px; font-size: 0.75rem; padding: 6px 10px; }
     .timeline-node.shrunk { min-width: 32px; height: 32px; width: 32px; }
     .timeline-node.shrunk::after { font-size: 0.8rem; }
+    .timeline-info-card .info-card-expand { font-size: 1.1rem; padding: 4px 8px; }
     .timeline-info-card { max-height: 130px; }
     .timeline-info-card-body { max-height: 100px; font-size: 0.72rem; }
     .timeline-info-card-header { font-size: 0.8rem; }

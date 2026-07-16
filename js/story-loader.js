@@ -333,7 +333,7 @@ window.switchStoryView = function(tabId, mode, btn) {
                 var prompt = document.createElement('div');
                 prompt.id = 'timeline-prompt-' + tabId;
                 prompt.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;margin-top:10px;';
-                prompt.innerHTML = '<p style="color:var(--color-accent);font-size:0.9rem;margin-bottom:16px;">建议竖屏查看</p>' +
+                prompt.innerHTML = '<p style="color:var(--color-accent);font-size:0.9rem;margin-bottom:16px;">建议手机端竖屏查看</p>' +
                     '<button onclick="openTimelineOverlay()" style="background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-primary-dark) 100%);color:#1a0f2e;font-family:\'Ma Shan Zheng\',cursive;font-size:1.4rem;border:none;border-radius:8px;padding:14px 40px;cursor:pointer;box-shadow:0 4px 15px rgba(212,175,55,0.4);transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">\u2726 \u70B9\u51FB\u67E5\u770B\u8109\u7EDC \u2726</button>';
                 ul.parentNode.insertBefore(prompt, ul.nextSibling);
             }
@@ -469,11 +469,22 @@ function setupTimelineDrag() {
         e.preventDefault();
     });
 
-    // 手机端触摸拖动时收回卡片（但不拦截卡片/节点上的点击）
+    // 手机端触摸：节点/卡片区域外的触摸关闭卡片；仅在中心横带内允许滑动
     canvas.addEventListener('touchstart', function(e) {
+        var t = e.touches[0];
+        var touchY = t.clientY - canvas.getBoundingClientRect().top;
+        var canvasH = canvas.clientHeight;
+        var bandMid = canvasH * 0.5;
+        var bandHalf = canvasH * 0.2;
+
         if (e.target.closest && (e.target.closest('.timeline-node') || e.target.closest('.timeline-info-card'))) return;
         closeInfoCards();
-    }, { passive: true });
+
+        // 仅在节点横带范围内允许原生横向滑动
+        if (touchY < bandMid - bandHalf || touchY > bandMid + bandHalf) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     window.addEventListener('mousemove', function(e) {
         if (!__timelineDragging) return;
@@ -718,9 +729,9 @@ window.showTimelinePopup = function(stageName, stageData) {
     function _getCardLayout(i) {
         var above;
         if (isMobile && forceBelow) {
-            above = false; // 全部放节点下方
+            above = false;
         } else if (isMobile) {
-            above = (i !== 1); // 卡片0(描述)和2(指导)在上，卡片1(触发条件)在下
+            above = (i === 0); // 仅卡片0(描述)在上方，1+2在下方
         } else {
             above = (i !== 1);
         }
@@ -779,11 +790,12 @@ window.showTimelinePopup = function(stageName, stageData) {
                 cardLayouts[2].anchorY = btm1 + gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
                 cards[2].style.top = cardLayouts[2].anchorY + 'px';
             } else {
-                cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
-                var top0 = cardLayouts[0].anchorY - h0;
-                cardLayouts[2].anchorY = top0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
-                cards[2].style.top = (cardLayouts[2].anchorY - h2) + 'px';
+                // 卡片1(触发条件)下方、卡片2(阶段指导)紧贴1下方
                 cards[1].style.top = cardLayouts[1].anchorY + 'px';
+                var btm1b = cardLayouts[1].anchorY + h1;
+                cardLayouts[2].anchorY = btm1b + gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
+                cardLayouts[2].above = false;
+                cards[2].style.top = cardLayouts[2].anchorY + 'px';
             }
 
             // 限制卡片不超出屏幕上下（顶部留 bar 空间）
