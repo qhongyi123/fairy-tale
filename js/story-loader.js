@@ -469,9 +469,9 @@ function setupTimelineDrag() {
         e.preventDefault();
     });
 
-    // 手机端触摸拖动时收回卡片
+    // 手机端触摸拖动时收回卡片（但不拦截卡片/节点上的点击）
     canvas.addEventListener('touchstart', function(e) {
-        if (e.target.closest && e.target.closest('.timeline-node')) return;
+        if (e.target.closest && (e.target.closest('.timeline-node') || e.target.closest('.timeline-info-card'))) return;
         closeInfoCards();
     }, { passive: true });
 
@@ -765,16 +765,10 @@ window.showTimelinePopup = function(stageName, stageData) {
         var points = [];
         // 手机端纵向堆叠
         if (isMobile) {
-            var gapM = 14;
+            var gapM = 22;
             var h0 = cards[0].offsetHeight, h1 = cards[1].offsetHeight, h2 = cards[2].offsetHeight;
 
-            // 先尝试标准布局：卡片0+2在上，卡片1在下
-            var tentativeTop0 = cardLayouts[0].anchorY - h0;
-            var tentativeTop2 = tentativeTop0 - gapM - h2;
-            var needBelow = tentativeTop2 < 60; // 卡片2顶部超出顶部栏
-
-            if (forceBelow || needBelow) {
-                // 全部放到节点下方，堆叠：0→1→2
+            if (forceBelow) {
                 cardLayouts[0].above = false; cardLayouts[1].above = false; cardLayouts[2].above = false;
                 cardLayouts[0].anchorY = nodeY + nodeH + margin; cardLayouts[0].centerY = cardLayouts[0].anchorY;
                 cards[0].style.top = cardLayouts[0].anchorY + 'px';
@@ -785,16 +779,20 @@ window.showTimelinePopup = function(stageName, stageData) {
                 cardLayouts[2].anchorY = btm1 + gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
                 cards[2].style.top = cardLayouts[2].anchorY + 'px';
             } else {
-                // 卡片0(描述)上方、卡片2(指导)紧贴0上方、卡片1(触发条件)下方
-                cards[0].style.top = tentativeTop0 + 'px';
-                cardLayouts[2].anchorY = tentativeTop0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
+                cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
+                var top0 = cardLayouts[0].anchorY - h0;
+                cardLayouts[2].anchorY = top0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
                 cards[2].style.top = (cardLayouts[2].anchorY - h2) + 'px';
                 cards[1].style.top = cardLayouts[1].anchorY + 'px';
             }
 
-            // 生成连线端点（上方卡片取底边中心，下方卡片取顶边中心）
+            // 限制卡片不超出屏幕上下（顶部留 bar 空间）
             cards.forEach(function(c, i) {
                 c.style.opacity = '';
+                var ct = parseFloat(c.style.top);
+                if (ct < 60) c.style.top = '60px';
+                var maxB = (window.innerHeight || document.documentElement.clientHeight) - 16;
+                if (ct + c.offsetHeight > maxB) c.style.top = (maxB - c.offsetHeight) + 'px';
                 var lo = cardLayouts[i];
                 points.push({
                     x: c.offsetLeft + c.offsetWidth / 2,

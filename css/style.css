@@ -828,7 +828,7 @@ body {
 /* 响应式 */
 @media (max-width: 768px) {
     .timeline-nodes { gap: 50px; }
-    .timeline-node { min-width: 55px; height: 55px; font-size: 0.75rem; padding: 4px 8px; }
+    .timeline-node { min-width: 70px; height: 55px; font-size: 0.75rem; padding: 6px 10px; }
     .timeline-node.shrunk { min-width: 32px; height: 32px; width: 32px; }
     .timeline-node.shrunk::after { font-size: 0.8rem; }
     .timeline-info-card { max-height: 130px; }
