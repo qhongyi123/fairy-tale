@@ -642,12 +642,17 @@ body {
     min-height: 1em;
     max-height: 120px;
     overflow-y: auto;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .timeline-info-card-body.editable-field {
     border: 1px solid rgba(184,134,11,0.3);
     border-radius: 3px;
     padding: 2px 6px;
     min-height: 2em;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .timeline-info-card-body.editable-field:focus {
     border-color: var(--color-primary);

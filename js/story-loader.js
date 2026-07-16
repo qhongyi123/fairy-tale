@@ -641,7 +641,7 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
     var bd = document.createElement('div');
     bd.className = 'timeline-info-card-body';
     if (isEdit) {
-        bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+        bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;max-width:100%;box-sizing:border-box;overflow-x:hidden;word-wrap:break-word;">' + content + '</div>';
     } else {
         bd.textContent = content;
     }
@@ -865,7 +865,7 @@ window.showTimelinePopup = function(stageName, stageData) {
                 var content = i === 0 ? desc : (i === 1 ? cond : guide);
                 var bd = c.querySelector('.timeline-info-card-body');
                 if (isEdit) {
-                    bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+                    bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldName + '" oninput="__cardSets[\'' + stageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;max-width:100%;box-sizing:border-box;overflow-x:hidden;word-wrap:break-word;">' + content + '</div>';
                 } else {
                     bd.textContent = content;
                 }
@@ -956,7 +956,7 @@ function _refreshAllCardsEditMode(isEdit) {
             var content = data[fields[i]] || '\u65E0';
             var bd = c.querySelector('.timeline-info-card-body');
             if (isEdit) {
-                bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldKeys[i] + '" oninput="__cardSets[\'' + key + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+                bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldKeys[i] + '" oninput="__cardSets[\'' + key + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;max-width:100%;box-sizing:border-box;overflow-x:hidden;word-wrap:break-word;">' + content + '</div>';
             } else {
                 bd.textContent = content;
             }
@@ -1031,7 +1031,7 @@ window.closeZoomCard = function(save) {
         var zoomBody = document.getElementById('zoomCardBody');
         var newContent = zoomBody.textContent || zoomBody.innerText || '';
         if (set.isEdit) {
-            bodyEl.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + __zoomField + '" oninput="__cardSets[\'' + __zoomStageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + newContent + '</div>';
+            bodyEl.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + __zoomField + '" oninput="__cardSets[\'' + __zoomStageName + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;max-width:100%;box-sizing:border-box;overflow-x:hidden;word-wrap:break-word;">' + newContent + '</div>';
         } else {
             bodyEl.textContent = newContent;
         }
