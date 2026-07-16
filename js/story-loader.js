@@ -606,9 +606,7 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
     expBtn.className = 'info-card-expand';
     expBtn.textContent = '\u26F6';
     expBtn.title = '\u653E\u5927\u67E5\u770B/\u7F16\u8F91';
-    expBtn.onclick = function(e) { e.stopPropagation(); openZoomCard(stageName, fieldName, label); };
-    expBtn.onmousedown = function(e) { e.stopPropagation(); };
-    expBtn.addEventListener('touchend', function(e) { e.stopPropagation(); e.preventDefault(); openZoomCard(stageName, fieldName, label); });
+    expBtn.addEventListener('pointerup', function(e) { e.stopPropagation(); e.preventDefault(); openZoomCard(stageName, fieldName, label); });
     hdr.appendChild(expBtn);
     card.appendChild(hdr);
     var bd = document.createElement('div');
@@ -693,7 +691,7 @@ window.showTimelinePopup = function(stageName, stageData) {
 
     var isMobile = window.innerWidth <= 768;
     var cardW = isMobile ? Math.min(window.innerWidth * 0.82, 300) : 210;
-    var gap = 16, margin = isMobile ? 100 : 280;
+    var gap = 16, margin = isMobile ? 75 : 280;
     var totalW = cardW * 3 + gap * 2;
     var startX = isMobile ? (nodeCX - cardW / 2) : (nodeX + nodeW / 2 - totalW / 2);
     // 手机端若节点太靠近顶部，强制所有卡片放下方
@@ -772,9 +770,10 @@ window.showTimelinePopup = function(stageName, stageData) {
 
             cards.forEach(function(c, i) {
                 c.style.opacity = '';
-                // 限制卡片不超出屏幕上下
+                // 限制卡片不超出屏幕上下，顶部留出 bar 空间
                 var ct = parseFloat(c.style.top);
-                if (ct < 8) c.style.top = '8px';
+                var minTop = 60;
+                if (ct < minTop) c.style.top = minTop + 'px';
                 var cb = ct + c.offsetHeight;
                 var maxB = (window.innerHeight || document.documentElement.clientHeight) - 16;
                 if (cb > maxB) c.style.top = (maxB - c.offsetHeight) + 'px';
