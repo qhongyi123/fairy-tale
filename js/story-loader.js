@@ -661,7 +661,7 @@ window.showTimelinePopup = function(stageName, stageData) {
     var nodeW = nodeRect.width, nodeH = nodeRect.height;
     var nodeCX = nodeX + nodeW / 2;
 
-    var cardW = 210, gap = 16, margin = 100;
+    var cardW = 210, gap = 16, margin = 280;
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
 
