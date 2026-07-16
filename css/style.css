@@ -831,10 +831,10 @@ body {
     .timeline-node { min-width: 55px; height: 55px; font-size: 0.75rem; padding: 4px 8px; }
     .timeline-node.shrunk { min-width: 32px; height: 32px; width: 32px; }
     .timeline-node.shrunk::after { font-size: 0.8rem; }
-    .timeline-info-card { width: 150px; padding: 8px 10px; max-height: 130px; }
+    .timeline-info-card { max-height: 160px; }
+    .timeline-info-card-body { max-height: 140px; }
     .timeline-info-card-header { font-size: 0.8rem; }
     .timeline-info-card-body { font-size: 0.72rem; }
-    .timeline-edit-switch { transform: scale(0.8); transform-origin: center; }
 }
 
 /* 强压控制多级UL列表不准内缩太长距离 */

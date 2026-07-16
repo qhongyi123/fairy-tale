@@ -658,29 +658,38 @@ window.showTimelinePopup = function(stageName, stageData) {
     var nodeW = nodeRect.width, nodeH = nodeRect.height;
     var nodeCX = nodeX + nodeW / 2;
 
-    var cardW = 210, gap = 16, margin = 280;
+    var isMobile = window.innerWidth <= 768;
+    var cardW = isMobile ? Math.min(window.innerWidth * 0.85, 300) : 210;
+    var gap = 16, margin = isMobile ? 160 : 280;
     var totalW = cardW * 3 + gap * 2;
-    var startX = nodeX + nodeW / 2 - totalW / 2;
+    var startX = isMobile ? (nodeCX - cardW / 2) : (nodeX + nodeW / 2 - totalW / 2);
 
-    // 每张卡片的布局（仅 X 和上下方向，Y 由实际高度决定）
     function _getCardLayout(i) {
-        var cx = i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2);
-        var above = (i !== 1);
+        var above;
+        if (isMobile) {
+            above = (i === 0);
+        } else {
+            above = (i !== 1);
+        }
+        var cx = isMobile ? startX : (i === 0 ? startX : (i === 1 ? startX + cardW + gap : startX + (cardW + gap) * 2));
         var lx = nodeCX;
         var ly = above ? nodeY : (nodeY + nodeH);
-        var hDist = (cx + cardW / 2) - nodeCX;
+        var ccx = cx + cardW / 2;
+        var hDist = ccx - nodeCX;
         var vertDist = Math.sqrt(Math.max(0, margin * margin - hDist * hDist));
         if (isNaN(vertDist)) vertDist = 0;
         var anchorY = above ? (ly - vertDist) : (ly + vertDist);
-        return { x: cx, lineX: lx, lineY: ly, centerX: cx + cardW/2, centerY: anchorY, above: above, anchorY: anchorY };
+        return { x: cx, lineX: lx, lineY: ly, centerX: ccx, centerY: anchorY, above: above, anchorY: anchorY };
     }
 
     var cardLayouts = [_getCardLayout(0), _getCardLayout(1), _getCardLayout(2)];
 
-    // 溢出调整（左/右不出画布）
-    var minX = 10, maxX = canvas.scrollWidth - totalW - 10;
-    if (startX < minX) { var sh = minX - startX; startX += sh; cardLayouts.forEach(function(lo) { lo.x += sh; lo.centerX += sh; }); }
-    else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardLayouts.forEach(function(lo) { lo.x -= sh; lo.centerX -= sh; }); }
+    // 溢出调整（桌面端左右不出画布；手机端已居中无需调整）
+    if (!isMobile) {
+        var minX = 10, maxX = canvas.scrollWidth - totalW - 10;
+        if (startX < minX) { var sh = minX - startX; startX += sh; cardLayouts.forEach(function(lo) { lo.x += sh; lo.centerX += sh; }); }
+        else if (startX > maxX) { var sh = startX - maxX; startX -= sh; cardLayouts.forEach(function(lo) { lo.x -= sh; lo.centerX -= sh; }); }
+    }
 
     // 变暗所有已有的卡片组（保留连线但变暗）
     Object.keys(__cardSets).forEach(function(k) {
@@ -701,16 +710,39 @@ window.showTimelinePopup = function(stageName, stageData) {
         });
         void cards[0].offsetHeight;
         var points = [];
-        cards.forEach(function(c, i) {
-            var lo = layouts[i];
-            var realH = c.offsetHeight;
-            c.style.top = (lo.above ? lo.anchorY - realH : lo.anchorY) + 'px';
-            c.style.opacity = '';
-            points.push({
-                x: c.offsetLeft + c.offsetWidth / 2,
-                y: lo.above ? c.offsetTop + realH : c.offsetTop
+        // 手机端卡片2需放在卡片1下方
+        if (isMobile) {
+            var h0 = cards[0].offsetHeight, h1 = cards[1].offsetHeight;
+            var gapM = 14;
+            // 卡片0锚点在节点上方
+            cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
+            // 卡片1锚点在节点下方
+            cards[1].style.top = cardLayouts[1].anchorY + 'px';
+            // 卡片2在卡片1下方
+            var card1Bottom = cardLayouts[1].anchorY + h1;
+            cardLayouts[2].anchorY = card1Bottom + gapM;
+            cardLayouts[2].centerY = cardLayouts[2].anchorY;
+            cards[2].style.top = cardLayouts[2].anchorY + 'px';
+            cards.forEach(function(c, i) {
+                c.style.opacity = '';
+                var lo = cardLayouts[i];
+                points.push({
+                    x: c.offsetLeft + c.offsetWidth / 2,
+                    y: lo.above ? (c.offsetTop + c.offsetHeight) : c.offsetTop
+                });
             });
-        });
+        } else {
+            cards.forEach(function(c, i) {
+                var lo = layouts[i];
+                var realH = c.offsetHeight;
+                c.style.top = (lo.above ? lo.anchorY - realH : lo.anchorY) + 'px';
+                c.style.opacity = '';
+                points.push({
+                    x: c.offsetLeft + c.offsetWidth / 2,
+                    y: lo.above ? c.offsetTop + realH : c.offsetTop
+                });
+            });
+        }
         return points;
     }
 
