@@ -386,11 +386,6 @@ function openTimelineOverlay() {
 }
 
 window.closeTimeline = function() {
-    var dirty = false;
-    Object.keys(__cardSets).forEach(function(k) { if (__cardSets[k].dirty) dirty = true; });
-    if (dirty) {
-        if (!confirm('卡片中有未保存的修改，确定要退出脉络式吗？')) return;
-    }
     closeInfoCards();
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         if (document.exitFullscreen) {
@@ -822,11 +817,18 @@ function _updateSaveBtn(isEdit) {
 }
 
 function _flashToast() {
-    var t = document.getElementById('timeline-toast');
-    if (!t) return;
-    t.classList.add('show');
-    clearTimeout(t._timeout);
-    t._timeout = setTimeout(function() { t.classList.remove('show'); }, 1500);
+    var btn = document.getElementById('timeline-save-btn');
+    if (!btn) return;
+    var orig = btn.textContent;
+    btn.textContent = '\u2714 \u5DF2\u4FDD\u5B58';
+    btn.style.background = '#2d8a4e';
+    btn.style.color = '#fff';
+    clearTimeout(btn._ft);
+    btn._ft = setTimeout(function() {
+        btn.textContent = orig;
+        btn.style.background = '';
+        btn.style.color = '';
+    }, 1500);
 }
 
 function _refreshAllCardsEditMode(isEdit) {
@@ -853,9 +855,6 @@ function _refreshAllCardsEditMode(isEdit) {
 function _closeOneCardSet(stageName) {
     var set = __cardSets[stageName];
     if (!set) return;
-    if (set.dirty) {
-        if (!confirm('\u8BE5\u8282\u70B9\u6709\u672A\u4FDD\u5B58\u7684\u4FEE\u6539\uFF0C\u786E\u5B9A\u5173\u95ED\u5417\uFF1F')) return;
-    }
     set.cards.forEach(function(c) { c.remove(); });
     set.lines.forEach(function(l) { l.remove(); });
     if (set.xBtn) set.xBtn.remove();
@@ -933,11 +932,6 @@ window.closeZoomCard = function(save) {
 };
 
 window.closeInfoCards = function() {
-    var dirty = false;
-    Object.keys(__cardSets).forEach(function(k) { if (__cardSets[k].dirty) dirty = true; });
-    if (dirty) {
-        if (!confirm('\u6709\u672A\u4FDD\u5B58\u7684\u4FEE\u6539\uFF0C\u786E\u5B9A\u5173\u95ED\u6240\u6709\u5361\u7247\u5417\uFF1F')) return;
-    }
     Object.keys(__cardSets).forEach(function(k) {
         var set = __cardSets[k];
         set.cards.forEach(function(c) { c.remove(); });
