@@ -460,9 +460,7 @@ function setupTimelineDrag() {
     canvas.dataset.dragReady = '1';
 
     canvas.addEventListener('mousedown', function(e) {
-        // 不拦截 .timeline-node 上的点击（节点有自己的 click 处理）
         if (e.target.closest && e.target.closest('.timeline-node')) return;
-        // 拖拽开始时收回所有卡片
         closeInfoCards();
         __timelineDragging = true;
         __timelineStartX = e.pageX - canvas.offsetLeft;
@@ -470,6 +468,12 @@ function setupTimelineDrag() {
         canvas.style.cursor = 'grabbing';
         e.preventDefault();
     });
+
+    // 手机端触摸拖动时收回卡片
+    canvas.addEventListener('touchstart', function(e) {
+        if (e.target.closest && e.target.closest('.timeline-node')) return;
+        closeInfoCards();
+    }, { passive: true });
 
     window.addEventListener('mousemove', function(e) {
         if (!__timelineDragging) return;
@@ -663,11 +667,15 @@ window.showTimelinePopup = function(stageName, stageData) {
     var gap = 16, margin = isMobile ? 160 : 280;
     var totalW = cardW * 3 + gap * 2;
     var startX = isMobile ? (nodeCX - cardW / 2) : (nodeX + nodeW / 2 - totalW / 2);
+    // 手机端若节点太靠近顶部，强制所有卡片放下方
+    var forceBelow = isMobile && nodeY < 300;
 
     function _getCardLayout(i) {
         var above;
-        if (isMobile) {
-            above = (i === 0);
+        if (isMobile && forceBelow) {
+            above = false; // 全部放节点下方
+        } else if (isMobile) {
+            above = (i !== 1); // 卡片0(描述)和2(指导)在上，卡片1(触发条件)在下
         } else {
             above = (i !== 1);
         }
@@ -710,19 +718,29 @@ window.showTimelinePopup = function(stageName, stageData) {
         });
         void cards[0].offsetHeight;
         var points = [];
-        // 手机端卡片2需放在卡片1下方
+        // 手机端纵向堆叠：上方(描述→指导)→节点→下方(触发条件)；空间不够则全部放下方
         if (isMobile) {
-            var h0 = cards[0].offsetHeight, h1 = cards[1].offsetHeight;
             var gapM = 14;
-            // 卡片0锚点在节点上方
-            cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
-            // 卡片1锚点在节点下方
-            cards[1].style.top = cardLayouts[1].anchorY + 'px';
-            // 卡片2在卡片1下方
-            var card1Bottom = cardLayouts[1].anchorY + h1;
-            cardLayouts[2].anchorY = card1Bottom + gapM;
-            cardLayouts[2].centerY = cardLayouts[2].anchorY;
-            cards[2].style.top = cardLayouts[2].anchorY + 'px';
+            var h0 = cards[0].offsetHeight, h1 = cards[1].offsetHeight, h2 = cards[2].offsetHeight;
+
+            if (forceBelow) {
+                // 全部在节点下方：0→1→2
+                cards[0].style.top = cardLayouts[0].anchorY + 'px';
+                var btm0 = cardLayouts[0].anchorY + h0;
+                cardLayouts[1].anchorY = btm0 + gapM; cardLayouts[1].centerY = cardLayouts[1].anchorY;
+                cards[1].style.top = cardLayouts[1].anchorY + 'px';
+                var btm1 = cardLayouts[1].anchorY + h1;
+                cardLayouts[2].anchorY = btm1 + gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
+                cards[2].style.top = cardLayouts[2].anchorY + 'px';
+            } else {
+                // 卡片0(描述)在节点上方、卡片2(阶段指导)紧贴0上方、卡片1(触发条件)在节点下方
+                cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
+                var top0 = cardLayouts[0].anchorY - h0;
+                cardLayouts[2].anchorY = top0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
+                cards[2].style.top = (cardLayouts[2].anchorY - h2) + 'px';
+                cards[1].style.top = cardLayouts[1].anchorY + 'px';
+            }
+
             cards.forEach(function(c, i) {
                 c.style.opacity = '';
                 var lo = cardLayouts[i];
