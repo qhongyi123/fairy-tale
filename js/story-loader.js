@@ -561,19 +561,37 @@ function updateNodeVisibility() {
     var canvasRect = canvas.getBoundingClientRect();
     var centerX = canvasRect.left + canvasRect.width / 2;
 
-    nodes.forEach(function(node) {
-        var rect = node.getBoundingClientRect();
-        var nodeCenterX = rect.left + rect.width / 2;
-        var distance = Math.abs(nodeCenterX - centerX);
-        var threshold = canvasRect.width * 0.35;
-        if (distance > threshold) {
-            node.classList.add('shrunk');
-            node.classList.remove('expand-all');
-        } else {
-            node.classList.remove('shrunk');
-            node.classList.add('expand-all');
-        }
-    });
+    if (window.innerWidth <= 768) {
+        // 手机端：始终展开离中心最近的5个节点，其余缩成圆球
+        var ranked = Array.from(nodes).map(function(node) {
+            var r = node.getBoundingClientRect();
+            return { node: node, dist: Math.abs(r.left + r.width / 2 - centerX) };
+        });
+        ranked.sort(function(a, b) { return a.dist - b.dist; });
+        ranked.forEach(function(item, idx) {
+            if (idx < 5) {
+                item.node.classList.remove('shrunk');
+                item.node.classList.add('expand-all');
+            } else {
+                item.node.classList.add('shrunk');
+                item.node.classList.remove('expand-all');
+            }
+        });
+    } else {
+        nodes.forEach(function(node) {
+            var rect = node.getBoundingClientRect();
+            var nodeCenterX = rect.left + rect.width / 2;
+            var distance = Math.abs(nodeCenterX - centerX);
+            var threshold = canvasRect.width * 0.35;
+            if (distance > threshold) {
+                node.classList.add('shrunk');
+                node.classList.remove('expand-all');
+            } else {
+                node.classList.remove('shrunk');
+                node.classList.add('expand-all');
+            }
+        });
+    }
 }
 
 window.toggleTimelineExpand = function() {
@@ -745,13 +763,20 @@ window.showTimelinePopup = function(stageName, stageData) {
         });
         void cards[0].offsetHeight;
         var points = [];
-        // 手机端纵向堆叠：上方(描述→指导)→节点→下方(触发条件)；空间不够则全部放下方
+        // 手机端纵向堆叠
         if (isMobile) {
             var gapM = 14;
             var h0 = cards[0].offsetHeight, h1 = cards[1].offsetHeight, h2 = cards[2].offsetHeight;
 
-            if (forceBelow) {
-                // 全部在节点下方：0→1→2
+            // 先尝试标准布局：卡片0+2在上，卡片1在下
+            var tentativeTop0 = cardLayouts[0].anchorY - h0;
+            var tentativeTop2 = tentativeTop0 - gapM - h2;
+            var needBelow = tentativeTop2 < 60; // 卡片2顶部超出顶部栏
+
+            if (forceBelow || needBelow) {
+                // 全部放到节点下方，堆叠：0→1→2
+                cardLayouts[0].above = false; cardLayouts[1].above = false; cardLayouts[2].above = false;
+                cardLayouts[0].anchorY = nodeY + nodeH + margin; cardLayouts[0].centerY = cardLayouts[0].anchorY;
                 cards[0].style.top = cardLayouts[0].anchorY + 'px';
                 var btm0 = cardLayouts[0].anchorY + h0;
                 cardLayouts[1].anchorY = btm0 + gapM; cardLayouts[1].centerY = cardLayouts[1].anchorY;
@@ -760,23 +785,16 @@ window.showTimelinePopup = function(stageName, stageData) {
                 cardLayouts[2].anchorY = btm1 + gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
                 cards[2].style.top = cardLayouts[2].anchorY + 'px';
             } else {
-                // 卡片0(描述)在节点上方、卡片2(阶段指导)紧贴0上方、卡片1(触发条件)在节点下方
-                cards[0].style.top = (cardLayouts[0].anchorY - h0) + 'px';
-                var top0 = cardLayouts[0].anchorY - h0;
-                cardLayouts[2].anchorY = top0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
+                // 卡片0(描述)上方、卡片2(指导)紧贴0上方、卡片1(触发条件)下方
+                cards[0].style.top = tentativeTop0 + 'px';
+                cardLayouts[2].anchorY = tentativeTop0 - gapM; cardLayouts[2].centerY = cardLayouts[2].anchorY;
                 cards[2].style.top = (cardLayouts[2].anchorY - h2) + 'px';
                 cards[1].style.top = cardLayouts[1].anchorY + 'px';
             }
 
+            // 生成连线端点（上方卡片取底边中心，下方卡片取顶边中心）
             cards.forEach(function(c, i) {
                 c.style.opacity = '';
-                // 限制卡片不超出屏幕上下，顶部留出 bar 空间
-                var ct = parseFloat(c.style.top);
-                var minTop = 60;
-                if (ct < minTop) c.style.top = minTop + 'px';
-                var cb = ct + c.offsetHeight;
-                var maxB = (window.innerHeight || document.documentElement.clientHeight) - 16;
-                if (cb > maxB) c.style.top = (maxB - c.offsetHeight) + 'px';
                 var lo = cardLayouts[i];
                 points.push({
                     x: c.offsetLeft + c.offsetWidth / 2,
