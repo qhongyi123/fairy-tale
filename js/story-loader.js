@@ -333,7 +333,7 @@ window.switchStoryView = function(tabId, mode, btn) {
                 var prompt = document.createElement('div');
                 prompt.id = 'timeline-prompt-' + tabId;
                 prompt.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;margin-top:10px;';
-                prompt.innerHTML = '<p style="color:var(--color-accent);font-size:0.9rem;margin-bottom:16px;">横屏查看脉络效果更佳</p>' +
+                prompt.innerHTML = '<p style="color:var(--color-accent);font-size:0.9rem;margin-bottom:16px;">建议竖屏查看</p>' +
                     '<button onclick="openTimelineOverlay()" style="background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-primary-dark) 100%);color:#1a0f2e;font-family:\'Ma Shan Zheng\',cursive;font-size:1.4rem;border:none;border-radius:8px;padding:14px 40px;cursor:pointer;box-shadow:0 4px 15px rgba(212,175,55,0.4);transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">\u2726 \u70B9\u51FB\u67E5\u770B\u8109\u7EDC \u2726</button>';
                 ul.parentNode.insertBefore(prompt, ul.nextSibling);
             }
@@ -489,7 +489,13 @@ function setupTimelineDrag() {
             var canvas = document.getElementById('timeline-canvas');
             if (canvas) canvas.style.cursor = 'grab';
             updateNodeVisibility();
+            _snapToNearestNode();
         }
+    });
+
+    // 手机端松手后吸附到最近节点
+    canvas.addEventListener('touchend', function() {
+        setTimeout(_snapToNearestNode, 60);
     });
 
     canvas.addEventListener('scroll', function() {
@@ -523,6 +529,28 @@ function renderTimelineNodes() {
     });
 
     updateNodeVisibility();
+}
+
+function _snapToNearestNode() {
+    var canvas = document.getElementById('timeline-canvas');
+    if (!canvas || canvas.style.display === 'none') return;
+    if (window.innerWidth > 768) return; // 仅手机端
+    var nodes = document.querySelectorAll('.timeline-node');
+    if (nodes.length === 0) return;
+    var canvasRect = canvas.getBoundingClientRect();
+    var centerX = canvasRect.left + canvasRect.width / 2;
+    var closest = null, closestDist = Infinity;
+    nodes.forEach(function(n) {
+        var r = n.getBoundingClientRect();
+        var dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < closestDist) { closestDist = dist; closest = n; }
+    });
+    if (closest) {
+        var r = closest.getBoundingClientRect();
+        var target = canvas.scrollLeft + (r.left + r.width / 2) - centerX;
+        target = Math.max(0, target);
+        canvas.scrollTo({ left: target, behavior: 'smooth' });
+    }
 }
 
 function updateNodeVisibility() {
@@ -580,6 +608,7 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
     expBtn.title = '\u653E\u5927\u67E5\u770B/\u7F16\u8F91';
     expBtn.onclick = function(e) { e.stopPropagation(); openZoomCard(stageName, fieldName, label); };
     expBtn.onmousedown = function(e) { e.stopPropagation(); };
+    expBtn.addEventListener('touchend', function(e) { e.stopPropagation(); e.preventDefault(); openZoomCard(stageName, fieldName, label); });
     hdr.appendChild(expBtn);
     card.appendChild(hdr);
     var bd = document.createElement('div');
@@ -663,8 +692,8 @@ window.showTimelinePopup = function(stageName, stageData) {
     var nodeCX = nodeX + nodeW / 2;
 
     var isMobile = window.innerWidth <= 768;
-    var cardW = isMobile ? Math.min(window.innerWidth * 0.85, 300) : 210;
-    var gap = 16, margin = isMobile ? 160 : 280;
+    var cardW = isMobile ? Math.min(window.innerWidth * 0.82, 300) : 210;
+    var gap = 16, margin = isMobile ? 100 : 280;
     var totalW = cardW * 3 + gap * 2;
     var startX = isMobile ? (nodeCX - cardW / 2) : (nodeX + nodeW / 2 - totalW / 2);
     // 手机端若节点太靠近顶部，强制所有卡片放下方
@@ -743,6 +772,12 @@ window.showTimelinePopup = function(stageName, stageData) {
 
             cards.forEach(function(c, i) {
                 c.style.opacity = '';
+                // 限制卡片不超出屏幕上下
+                var ct = parseFloat(c.style.top);
+                if (ct < 8) c.style.top = '8px';
+                var cb = ct + c.offsetHeight;
+                var maxB = (window.innerHeight || document.documentElement.clientHeight) - 16;
+                if (cb > maxB) c.style.top = (maxB - c.offsetHeight) + 'px';
                 var lo = cardLayouts[i];
                 points.push({
                     x: c.offsetLeft + c.offsetWidth / 2,
