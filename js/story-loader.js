@@ -325,6 +325,7 @@ window.switchStoryView = function(tabId, mode, btn) {
     var guideBlock = subPanel.querySelector('.data-block:last-of-type');
     var guideUI = guideBlock ? guideBlock.querySelector('ul[data-dict]') : null;
     var guideAddBtn = guideBlock ? guideBlock.querySelector('.add-custom-btn') : null;
+    var guideTitle = guideBlock ? guideBlock.querySelector('.data-field-title') : null;
 
     if (mode === 'timeline') {
         if (ul) {
@@ -339,7 +340,8 @@ window.switchStoryView = function(tabId, mode, btn) {
             ul.style.display = 'none';
             if (addBtn) addBtn.style.display = 'none';
         }
-        // 隐藏描写指导区域
+        // 隐藏描写指导区域（标题+列表+按钮）
+        if (guideTitle) guideTitle.style.display = 'none';
         if (guideUI) guideUI.style.display = 'none';
         if (guideAddBtn) guideAddBtn.style.display = 'none';
     } else {
@@ -348,6 +350,7 @@ window.switchStoryView = function(tabId, mode, btn) {
         if (addBtn) addBtn.style.display = '';
         if (prompt) prompt.remove();
         // 恢复描写指导
+        if (guideTitle) guideTitle.style.display = '';
         if (guideUI) guideUI.style.display = '';
         if (guideAddBtn) guideAddBtn.style.display = '';
     }
@@ -658,7 +661,7 @@ window.showTimelinePopup = function(stageName, stageData) {
     var nodeW = nodeRect.width, nodeH = nodeRect.height;
     var nodeCX = nodeX + nodeW / 2;
 
-    var cardW = 210, gap = 16, margin = 60;
+    var cardW = 210, gap = 16, margin = 100;
     var totalW = cardW * 3 + gap * 2;
     var startX = nodeX + nodeW / 2 - totalW / 2;
 
