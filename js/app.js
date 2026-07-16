@@ -316,14 +316,9 @@ window.toggleEditMode = function(chkboxEl, tabId) {
     var saveBtn = document.getElementById('timeline-save-btn');
     if (saveBtn) saveBtn.style.display = chkboxEl.checked ? '' : 'none';
 
-    // 如果脉络式中有卡片打开且属于当前 tab，刷新卡片编辑状态
-    if (typeof __timelineTabId !== 'undefined' && __timelineTabId === tabId &&
-        typeof __cardSets !== 'undefined' && typeof __timelineData !== 'undefined') {
-        Object.keys(__cardSets).forEach(function(key) {
-            if (__timelineData[key]) {
-                window.showTimelinePopup(key, __timelineData[key]);
-            }
-        });
+    // 刷新已打开卡片的编辑状态（保持变暗/亮起不变）
+    if (typeof _refreshAllCardsEditMode === 'function') {
+        _refreshAllCardsEditMode(chkboxEl.checked);
     }
 };
 

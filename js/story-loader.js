@@ -449,12 +449,8 @@ window.toggleTimelineEditMode = function(chkEl) {
         }
     }
 
-    // 如果当前有卡片打开，刷新为编辑模式
-    Object.keys(__cardSets).forEach(function(key) {
-        if (__timelineData[key]) {
-            window.showTimelinePopup(key, __timelineData[key]);
-        }
-    });
+    // 刷新所有已打开卡片的编辑状态（保持变暗/亮起不变）
+    _refreshAllCardsEditMode(isChecked);
     _updateSaveBtn(isChecked);
 };
 
@@ -471,6 +467,8 @@ function setupTimelineDrag() {
     canvas.addEventListener('mousedown', function(e) {
         // 不拦截 .timeline-node 上的点击（节点有自己的 click 处理）
         if (e.target.closest && e.target.closest('.timeline-node')) return;
+        // 拖拽开始时收回所有卡片
+        closeInfoCards();
         __timelineDragging = true;
         __timelineStartX = e.pageX - canvas.offsetLeft;
         __timelineScrollLeft = canvas.scrollLeft;
@@ -829,6 +827,27 @@ function _flashToast() {
     t.classList.add('show');
     clearTimeout(t._timeout);
     t._timeout = setTimeout(function() { t.classList.remove('show'); }, 1500);
+}
+
+function _refreshAllCardsEditMode(isEdit) {
+    Object.keys(__cardSets).forEach(function(key) {
+        var set = __cardSets[key];
+        if (!set.cards[0] || !document.body.contains(set.cards[0])) return;
+        set.isEdit = isEdit;
+        var data = __timelineData[key];
+        if (!data) return;
+        var fields = ['\u63CF\u8FF0', '\u89E6\u53D1\u6761\u4EF6', '\u9636\u6BB5\u6307\u5BFC'];
+        var fieldKeys = ['desc', 'cond', 'guide'];
+        set.cards.forEach(function(c, i) {
+            var content = data[fields[i]] || '\u65E0';
+            var bd = c.querySelector('.timeline-info-card-body');
+            if (isEdit) {
+                bd.innerHTML = '<div class="editable-field timeline-info-card-body" contenteditable="true" data-field="' + fieldKeys[i] + '" oninput="__cardSets[\'' + key + '\'].dirty=true" style="border:1px solid rgba(184,134,11,0.3);border-radius:3px;padding:2px 6px;min-height:2em;">' + content + '</div>';
+            } else {
+                bd.textContent = content;
+            }
+        });
+    });
 }
 
 function _closeOneCardSet(stageName) {

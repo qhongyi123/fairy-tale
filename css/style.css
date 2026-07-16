@@ -680,7 +680,7 @@ body {
 
 /* 脉络式内轻提示 */
 .timeline-toast {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
     color: #1a0f2e;
     padding: 8px 28px; border-radius: 6px;
@@ -688,6 +688,7 @@ body {
     z-index: 99999; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    white-space: nowrap;
 }
 .timeline-toast.show {
     opacity: 1;
