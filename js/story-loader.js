@@ -631,11 +631,15 @@ function _buildTimelineCard(label, content, isEdit, fieldName, stageName) {
     var lblSpan = document.createElement('span');
     lblSpan.textContent = label;
     hdr.appendChild(lblSpan);
-    var expBtn = document.createElement('span');
+    var expBtn = document.createElement('button');
     expBtn.className = 'info-card-expand';
     expBtn.textContent = '\u26F6';
     expBtn.title = '\u653E\u5927\u67E5\u770B/\u7F16\u8F91';
-    expBtn.addEventListener('pointerup', function(e) { e.stopPropagation(); e.preventDefault(); openZoomCard(stageName, fieldName, label); });
+    expBtn.setAttribute('type', 'button');
+    expBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-family:inherit;';
+    var doZoom = function(e) { e.stopPropagation(); e.preventDefault(); openZoomCard(stageName, fieldName, label); };
+    expBtn.addEventListener('click', doZoom);
+    expBtn.addEventListener('touchend', doZoom);
     hdr.appendChild(expBtn);
     card.appendChild(hdr);
     var bd = document.createElement('div');
