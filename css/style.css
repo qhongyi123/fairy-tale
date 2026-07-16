@@ -678,26 +678,19 @@ body {
     color: var(--color-accent);
 }
 
-/* 编辑模式下的保存按钮栏 */
-.timeline-info-savebar {
-    position: absolute;
-    display: none;
-    z-index: 101;
-}
-.timeline-info-savebar.show {
-    display: block;
-}
-.timeline-info-savebar button {
+/* 脉络式内轻提示 */
+.timeline-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
     color: #1a0f2e;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 14px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    pointer-events: auto;
+    padding: 8px 28px; border-radius: 6px;
+    font-weight: bold; font-size: 0.95rem;
+    z-index: 99999; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.timeline-toast.show {
+    opacity: 1;
 }
 
 /* 连线：从节点连接到卡片 */

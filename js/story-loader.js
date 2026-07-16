@@ -372,6 +372,7 @@ function openTimelineOverlay() {
     if (tabEl && tlChk) {
         tlChk.checked = tabEl.classList.contains('is-edit-mode');
     }
+    _updateSaveBtn(tabEl && tabEl.classList.contains('is-edit-mode'));
 
     // 请求浏览器全屏
     var el = overlay;
@@ -422,6 +423,8 @@ window.startTimeline = function() {
     document.getElementById('timeline-canvas').style.display = '';
     setupTimelineDrag();
     renderTimelineNodes();
+    var tabEl = document.getElementById(__timelineTabId);
+    _updateSaveBtn(tabEl && tabEl.classList.contains('is-edit-mode'));
 };
 
 // 脉络式内的编辑模式开关（与外部同步）
@@ -452,6 +455,7 @@ window.toggleTimelineEditMode = function(chkEl) {
             window.showTimelinePopup(key, __timelineData[key]);
         }
     });
+    _updateSaveBtn(isChecked);
 };
 
 // ===== 桌面端鼠标拖拽滚动 =====
@@ -765,7 +769,7 @@ window.showTimelinePopup = function(stageName, stageData) {
             var pts2 = _layoutCards(set.cards, cardLayouts);
             _applyLines(set.lines, cardLayouts, pts2);
         }
-        _updateSaveBar(isEdit, startX, totalW, cardLayouts);
+        _updateSaveBtn(isEdit);
         return;
     }
 
@@ -811,27 +815,20 @@ window.showTimelinePopup = function(stageName, stageData) {
         xBtn.classList.add('show');
     });
 
-    _updateSaveBar(isEdit, startX, totalW, cardLayouts);
+    _updateSaveBtn(isEdit);
 };
 
-function _updateSaveBar(isEdit, startX, totalW, cardLayouts) {
-    var saveBar = document.getElementById('timeline-info-savebar');
-    if (!saveBar) {
-        saveBar = document.createElement('div');
-        saveBar.id = 'timeline-info-savebar';
-        saveBar.className = 'timeline-info-savebar';
-        saveBar.innerHTML = '<button onclick="saveInfoCardEdit()">\u2727 \u4FDD\u5B58</button>';
-        document.getElementById('timeline-canvas').appendChild(saveBar);
-        saveBar.onmousedown = function(e) { e.stopPropagation(); };
-    }
-    if (isEdit) {
-        saveBar.classList.add('show');
-        saveBar.style.left = (startX + totalW - 70) + 'px';
-        var aboveCard = cardLayouts[0].above ? cardLayouts[0] : cardLayouts[1];
-        saveBar.style.top = (aboveCard.y - 36) + 'px';
-    } else {
-        saveBar.classList.remove('show');
-    }
+function _updateSaveBtn(isEdit) {
+    var btn = document.getElementById('timeline-save-btn');
+    if (btn) btn.style.display = isEdit ? '' : 'none';
+}
+
+function _flashToast() {
+    var t = document.getElementById('timeline-toast');
+    if (!t) return;
+    t.classList.add('show');
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(function() { t.classList.remove('show'); }, 1500);
 }
 
 function _closeOneCardSet(stageName) {
@@ -861,9 +858,6 @@ function _closeOneCardSet(stageName) {
         lastSet.dirty = false;
         __infoCardsStageName = lastKey;
     }
-
-    var saveBar = document.getElementById('timeline-info-savebar');
-    if (saveBar) saveBar.classList.remove('show');
 }
 
 var __zoomStageName = '', __zoomField = '';
@@ -934,8 +928,6 @@ window.closeInfoCards = function() {
     });
     __infoCardsDirty = false;
     __infoCardsStageName = '';
-    var saveBar = document.getElementById('timeline-info-savebar');
-    if (saveBar) saveBar.classList.remove('show');
 };
 
 window.saveInfoCardEdit = function() {
@@ -977,5 +969,5 @@ window.saveInfoCardEdit = function() {
     }
 
     set.dirty = false;
-    showCustomAlert('\u2728 \u5DF2\u4FDD\u5B58');
+    _flashToast();
 };

@@ -312,6 +312,10 @@ window.toggleEditMode = function(chkboxEl, tabId) {
         tlChk.checked = chkboxEl.checked;
     }
 
+    // 同步脉络式保存按钮
+    var saveBtn = document.getElementById('timeline-save-btn');
+    if (saveBtn) saveBtn.style.display = chkboxEl.checked ? '' : 'none';
+
     // 如果脉络式中有卡片打开且属于当前 tab，刷新卡片编辑状态
     if (typeof __timelineTabId !== 'undefined' && __timelineTabId === tabId &&
         typeof __cardSets !== 'undefined' && typeof __timelineData !== 'undefined') {
