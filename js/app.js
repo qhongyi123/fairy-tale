@@ -153,7 +153,7 @@ function switchSubTab(btnElement, subTabId) {
 }
 
 function nextPage() {
-    var btns = Array.from(document.querySelectorAll('.tab-btn'));
+    var btns = Array.from(document.querySelectorAll('.tab-btn')).filter(function(btn) { return btn.style.display !== 'none'; });
     var currentIndex = btns.findIndex(function(btn) { return btn.classList.contains('active'); });
     if (currentIndex !== -1) {
         var nextIndex = (currentIndex + 1) % btns.length;
@@ -605,7 +605,7 @@ window.commitPresetData = function() {
             '</div>';
         regionSuperBox.appendChild(wrapBox);
     });
-    showCustomAlert("\u2728 奇迹之风：所点指境域全均接驳植入于档案底本！");
+    showCustomAlert("预设已加载");
     closePresetModal();
     setTimeout(function() { regionSuperBox.scrollIntoView({behavior: "smooth", block: "end"}); }, 300);
 };
