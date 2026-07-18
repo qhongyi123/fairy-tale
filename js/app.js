@@ -25,7 +25,7 @@ function renderControlPanelDynamicArea() {
             '<div class="cp-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px dashed rgba(212,175,55,0.4); padding-bottom:10px;">' +
                 '<div style="font-style:italic; font-size:0.95em; color:#8b5a2b; font-weight:bold;">' +
                     '\u2756 ' + conf.title + ' \u2756 <br>' +
-                    '<span style="font-weight:normal; font-size:0.8em; opacity:0.9; color:var(--color-text-dark);">叙事节奏以及文风分页只能单选！其余界面可以多选</span>' +
+                    '<span style="font-weight:normal; font-size:0.8em; opacity:0.9; color:var(--color-text-dark);">部分界面只能单选，请注意</span>' +
                 '</div>' +
                 '<div class="cp-mode-box" style="display:flex; align-items:center; gap:8px; background:rgba(253,246,227,0.8); padding:4px 8px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">' +
                     '<span style="font-size:0.85rem; font-weight:bold; color:var(--color-primary-dark);">单选模式</span>' +

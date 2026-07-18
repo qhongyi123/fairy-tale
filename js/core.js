@@ -6,37 +6,11 @@ var CH_NUMS = ["", "一","二","三","四","五","六","七","八","九","十",
 
 var CONTROL_PANEL_CONFIG = {
     "tab3-sub1": {
-        title: "叙事节奏",
+        title: "美化",
         defaultSingle: true,
         items: [
-            { id: "cps1-1", name: "均衡推进", desc: "进行剧情时，每次至多推进一个阶段", enableUids: [ 101 ], disableUids: [], defaultChecked: true },
-            { id: "cps1-2", name: "快速推进", desc: "进行剧情时，每次推进至少一个阶段", enableUids: [ 101 ], disableUids: [] },
-            { id: "cps1-3", name: "慢速推进", desc: "进行剧情时，每次推进一个阶段后，进行一个幕间", enableUids: [ 102 ], disableUids: [] }
-        ]
-    },
-    "tab3-sub2": {
-        title: "文风",
-        defaultSingle: true,
-        items: [
-            { id: "cps2-1", name: "轻松奇幻", desc: "引入黑暗冷酷的世界观色彩，无情的现实随时都会降临。", enableUids: [ 111 ], disableUids: [], defaultChecked: true },
-            { id: "cps2-2", name: "童真暖光", desc: "温暖奇迹般的故事语调，任何挫折也只是奔向甜蜜前的插曲。", enableUids: [ 112 ], disableUids: [] }
-        ]
-    },
-    "tab3-sub3": {
-        title: "额外XP",
-        defaultSingle: false,
-        items: [
-            { id: "cps3-1", name: "沉沦扭曲之恋", desc: "将会在对话深处追加强烈的病娇与扭曲占据属性指令许可。", enableUids: [ 201 ], disableUids: [] },
-            { id: "cps3-2", name: "屈服驯化记录", desc: "解锁主从羁绊或完全受降的潜台词设定，偏好更深不可测的控制感。", enableUids: [ 202 ], disableUids: [] },
-            { id: "cps3-3", name: "奇迹异变体", desc: "赋予故事触手或其余隐晦非常识生物出场的微小倾向加成。", enableUids: [ 203 ], disableUids: [] }
-        ]
-    },
-    "tab3-sub4": {
-        title: "备用页面",
-        defaultSingle: false,
-        items: [
-            { id: "cps4-1", name: "暗黑模组试做版 A", desc: "用于挂载未知领域试验法则的一号预留卡槽。", enableUids: [ 301 ], disableUids: [] },
-            { id: "cps4-2", name: "心流模组探测器 B", desc: "开启该选项调用世界内部暗线的秘密彩蛋检测机制。", enableUids: [ 302 ], disableUids: [] }
+            { id: "cps1-1", name: "正文美化", desc: "启用正文的美化排版与装饰效果。", enableUids: [ 3 ], disableUids: [] },
+            { id: "cps1-2", name: "纯文字", desc: "使用简洁的纯文字模式，关闭所有美化效果。", enableUids: [ 4 ], disableUids: [] }
         ]
     }
 };
