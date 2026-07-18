@@ -140,7 +140,7 @@ async function initDynamicTabs() {
                     '<div style="margin-top:12px;"><span class="param-label" style="display:block;">\uD83E\uDDE0 心理描写:</span> <div class="editable-field editable-textarea" data-path="variable.user.Psychological_description">' + mtH(vd.user && vd.user.Psychological_description || '') + '</div></div></div>';
             }
             else if (h === "开始剧情") {
-                contentStr = '<div class="data-block" style="border-bottom:none;"><div class="data-field-title">\u2728 幕启词刻</div><div class="editable-field editable-textarea data-story-text" data-path="story.startContent" style="min-height:100px;">' + mtH(sd.startContent) + '</div></div><button class="start-game-btn" data-tid="' + tabId + '">开启童话物语</button>';
+                contentStr = '<div class="data-block" style="border-bottom:none;"><div class="data-field-title">\u2728 幕启词刻</div><button class="start-game-btn" data-tid="' + tabId + '" style="margin-top:10px; margin-bottom:10px;">开启童话物语</button><div class="editable-field editable-textarea data-story-text" data-path="story.startContent" style="min-height:100px;">' + mtH(sd.startContent) + '</div></div>';
             }
 
             panelsHTML += '<div id="' + thisSubId + '" class="sub-panel ' + isSubActive + '">' + contentStr + '</div>';
