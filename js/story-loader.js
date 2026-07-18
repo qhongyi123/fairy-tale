@@ -1,10 +1,10 @@
 // 故事清单：每个故事对应一个 JSON 文件
 var STORY_MANIFEST = [
-    { id: "tab4",  name: "白雪公主",          file: "data/stories/白雪公主.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab5",  name: "灰姑娘",            file: "data/stories/灰姑娘.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab7",  name: "小红帽",            file: "data/stories/小红帽.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab8",  name: "卖火柴的小女孩",    file: "data/stories/卖火柴的小女孩.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab10", name: "小裁缝一次干七个！", file: "data/stories/小裁缝一次干七个！.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
+    { id: "tab4",  name: "白雪公主（制作中）", file: "data/stories/白雪公主.json", headers: ["背景信息", "剧情线", "参数调整", "开始剧情"] },
     { id: "tab11", name: "自定义开局",        file: null, headers: ["背景信息", "人物信息", "参数调整", "开始剧情"] },
     { id: "tab12", name: "自定义剧本",        file: null, headers: ["背景信息", "剧情线", "人物信息", "参数调整", "开始剧情"] }
 ];
