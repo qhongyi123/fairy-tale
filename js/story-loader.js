@@ -133,7 +133,18 @@ async function initDynamicTabs() {
                 contentStr = '<div class="data-block" style="border:none; height:100%; display:flex; flex-direction:column;"><div class="data-field-title">\uD83C\uDFAD 世界书读取</div><div style="background:rgba(212,175,55,0.06); border:1px solid rgba(212,175,55,0.15); padding:12px; border-radius:6px; margin-top:10px; flex:1; display:flex; flex-direction:column;"><select id="char-select-' + tabId + '" onchange="loadCharEntry(this, \'' + tabId + '\')" style="width:100%; padding:8px; margin-bottom:12px; border-radius:4px; background:var(--bg-content); color:var(--color-text-dark); border:1px solid var(--color-primary-dark); outline:none; font-family:inherit; box-shadow:inset 1px 1px 3px rgba(0,0,0,0.05);"><option value="">载入世间灵魄中，请稍候...</option></select><span class="param-label" style="display:block; margin-bottom:4px;">化身名号 (即神魂封卷语):</span><input type="text" id="char-name-' + tabId + '" placeholder="填写条目名称(例如角色名、称号等)..." style="width:100%; margin-bottom:12px; padding:6px; box-sizing:border-box; background:rgba(253,246,227,0.5); border:1px solid rgba(184,134,11,0.4); outline:none;"><span class="param-label" style="display:block; margin-bottom:4px; flex-shrink:0;">命途轨痕 (世界书人物条目内容):</span><textarea id="char-content-' + tabId + '" placeholder="描摹深层性格法则、种族特质、隐秘喜好等..." style="flex:1; width:100%; resize:none; padding:6px; box-sizing:border-box; background:rgba(253,246,227,0.5); border:1px solid rgba(184,134,11,0.4); outline:none;"></textarea><div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px; flex-shrink:0;"><button onclick="saveCharEntry(\'' + tabId + '\')" style="background:linear-gradient(135deg, #ffffff 0%, #fdf6e3 100%); border:1px solid var(--color-primary-dark); color:var(--color-text-dark); padding:6px 16px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15);">\u2727 写入 \u2727</button><button onclick="populateCharSelectors()" style="background:transparent; border:1px dashed var(--color-accent); color:var(--color-text-dark); padding:6px 12px; border-radius:4px; cursor:pointer;">\u21BB 刷新列表</button></div></div></div>';
             }
             else if (h === "参数调整") {
-                contentStr = '<div class="param-group" style="background:rgba(212,175,55,0.06); padding:10px; border-radius:6px; border:1px solid rgba(212,175,55,0.15);"><div class="data-field-title" style="margin-bottom:8px;">\uD83C\uDF10 世界信息</div><div style="display:flex; flex-wrap:wrap; gap:10px; line-height:1.8;"><div style="flex:1; min-width:120px;"><span class="param-label">\uD83D\uDCC5 日期:</span> <span class="editable-field" data-path="variable.world.date">' + mtH(vd.world && vd.world.date || '') + '</span></div><div style="flex:1; min-width:120px;"><span class="param-label">\u23F1\uFE0F 时间:</span> <span class="editable-field" data-path="variable.world.time">' + mtH(vd.world && vd.world.time || '') + '</span></div><div style="width:100%;"><span class="param-label">\uD83D\uDCCD 地点:</span> <span class="editable-field" style="width:calc(100% - 50px);" data-path="variable.world.position">' + mtH(vd.world && vd.world.position || '') + '</span></div></div></div>' +
+                contentStr = '';
+                // 角色选择按钮
+                if (vd.characterSelect && vd.characterSelect.options && vd.characterSelect.options.length > 0) {
+                    var cs = vd.characterSelect;
+                    contentStr += '<div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; align-items:center; padding:8px; background:rgba(212,175,55,0.06); border-radius:6px; border:1px solid rgba(212,175,55,0.15);"><span style="font-weight:bold; color:var(--color-primary-dark); font-size:0.95em; margin-right:6px;">' + mtH(cs.label || '\uD83C\uDFAE 选择角色') + '</span>';
+                    cs.options.forEach(function(cname) {
+                        var isAct = (cname === cs.active);
+                        contentStr += '<button class="char-select-btn' + (isAct ? ' active' : '') + '" data-char="' + cname + '" onclick="switchCharProfile(this, \'' + tabId + '\')" style="padding:5px 14px; border-radius:6px; border:1px solid ' + (isAct ? 'var(--color-primary-dark)' : 'rgba(212,175,55,0.4)') + '; background:' + (isAct ? 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(253,246,227,0.6))' : 'rgba(253,246,227,0.3)') + '; color:var(--color-text-dark); cursor:pointer; font-weight:' + (isAct ? 'bold' : 'normal') + '; font-family:inherit; font-size:0.9em;">' + cname + '</button>';
+                    });
+                    contentStr += '</div>';
+                }
+                contentStr += '<div class="param-group" style="background:rgba(212,175,55,0.06); padding:10px; border-radius:6px; border:1px solid rgba(212,175,55,0.15);"><div class="data-field-title" style="margin-bottom:8px;">\uD83C\uDF10 世界信息</div><div style="display:flex; flex-wrap:wrap; gap:10px; line-height:1.8;"><div style="flex:1; min-width:120px;"><span class="param-label">\uD83D\uDCC5 日期:</span> <span class="editable-field" data-path="variable.world.date">' + mtH(vd.world && vd.world.date || '') + '</span></div><div style="flex:1; min-width:120px;"><span class="param-label">\u23F1\uFE0F 时间:</span> <span class="editable-field" data-path="variable.world.time">' + mtH(vd.world && vd.world.time || '') + '</span></div><div style="width:100%;"><span class="param-label">\uD83D\uDCCD 地点:</span> <span class="editable-field" style="width:calc(100% - 50px);" data-path="variable.world.position">' + mtH(vd.world && vd.world.position || '') + '</span></div></div></div>' +
                     '<div class="param-group" style="padding:10px; border:1px solid rgba(212,175,55,0.1); border-radius:6px;"><div class="data-field-title" style="margin-bottom:8px;">\uD83C\uDFAD 角色信息</div><div style="display:flex; flex-wrap:wrap; gap:10px; line-height:1.8;"><div style="width:100%;"><span class="param-label">\uD83D\uDC64 身份:</span> <span class="editable-field" style="width:calc(100% - 50px);" data-path="variable.user.identity">' + mtH(vd.user && vd.user.identity || '') + '</span></div><div style="flex:1; min-width:120px;"><span class="param-label">\u26A7\uFE0F 性别:</span> <span class="editable-field" data-path="variable.user.gender">' + mtH(vd.user && vd.user.gender || '') + '</span></div><div style="width:100%;"><span class="param-label">\uD83E\uDEC0 身体状态:</span> <div class="editable-field editable-textarea" data-path="variable.user.body_state" style="display:inline-block; vertical-align:top; width:70%;">' + mtH(vd.user && vd.user.body_state || '') + '</div></div></div>' +
                     '<div style="margin-top:12px;"><span class="param-label" style="display:block;">\uD83E\uDEBA 行囊:</span><ul data-dict="variable.user.Inventory" style="padding-left:15px; margin:5px 0;">' + generateInventoryList(vd.user && vd.user.Inventory || {}) + '</ul><div class="add-custom-btn" onclick="addNewInventoryItem(this)">+ 添加物品</div></div>' +
                     '<div style="margin-top:12px;"><span class="param-label" style="display:block;">\uD83C\uDF03 周围环境:</span> <div class="editable-field editable-textarea" data-path="variable.user.surroundings">' + mtH(vd.user && vd.user.surroundings || '') + '</div></div>' +
@@ -259,6 +270,84 @@ async function initDynamicTabs() {
         });
     });
 }
+
+// ===== 角色切换函数 =====
+window.switchCharProfile = function(btn, tabId) {
+    var panel = btn.closest('.tab-panel');
+    var profName = btn.getAttribute('data-char');
+    if (!profName) return;
+
+    var dm = tabsDataMap[tabId];
+    if (!dm) return;
+    var vd = dm.data.variable;
+    var cs = vd.characterSelect;
+    if (!cs || !vd.profiles || !vd.profiles[profName]) return;
+
+    // 更新选中状态
+    cs.active = profName;
+
+    // 从 profiles 复制到顶层 variable
+    var prof = vd.profiles[profName];
+    vd.world.date = prof.world.date;
+    vd.world.time = prof.world.time;
+    vd.world.position = prof.world.position;
+    vd.user.identity = prof.user.identity;
+    vd.user.gender = prof.user.gender;
+    vd.user.body_state = prof.user.body_state;
+    vd.user.surroundings = prof.user.surroundings;
+    vd.user.Psychological_description = prof.user.Psychological_description;
+    vd.user.Inventory = JSON.parse(JSON.stringify(prof.user.Inventory || {}));
+
+    // 同步到 originalDataCache（开始游戏时从此处读取）
+    if (originalDataCache[tabId]) {
+        var oc = originalDataCache[tabId].variable;
+        oc.world.date = vd.world.date;
+        oc.world.time = vd.world.time;
+        oc.world.position = vd.world.position;
+        oc.user.identity = vd.user.identity;
+        oc.user.gender = vd.user.gender;
+        oc.user.body_state = vd.user.body_state;
+        oc.user.surroundings = vd.user.surroundings;
+        oc.user.Psychological_description = vd.user.Psychological_description;
+        oc.user.Inventory = JSON.parse(JSON.stringify(vd.user.Inventory));
+    }
+
+    // 更新按钮样式
+    panel.querySelectorAll('.char-select-btn').forEach(function(b) {
+        b.classList.remove('active');
+        b.style.border = '1px solid rgba(212,175,55,0.4)';
+        b.style.background = 'rgba(253,246,227,0.3)';
+        b.style.fontWeight = 'normal';
+    });
+    btn.classList.add('active');
+    btn.style.border = '1px solid var(--color-primary-dark)';
+    btn.style.background = 'linear-gradient(135deg, rgba(212,175,55,0.3), rgba(253,246,227,0.6))';
+    btn.style.fontWeight = 'bold';
+
+    // 更新 DOM 中的可编辑字段
+    var fields = {
+        'variable.world.date': vd.world.date,
+        'variable.world.time': vd.world.time,
+        'variable.world.position': vd.world.position,
+        'variable.user.identity': vd.user.identity,
+        'variable.user.gender': vd.user.gender,
+        'variable.user.body_state': vd.user.body_state,
+        'variable.user.surroundings': vd.user.surroundings,
+        'variable.user.Psychological_description': vd.user.Psychological_description
+    };
+    panel.querySelectorAll('[data-path]').forEach(function(el) {
+        var p = el.getAttribute('data-path');
+        if (fields[p] !== undefined) {
+            el.innerHTML = mtH(fields[p]);
+        }
+    });
+
+    // 重新渲染行囊
+    var invUl = panel.querySelector('[data-dict="variable.user.Inventory"]');
+    if (invUl) {
+        invUl.innerHTML = generateInventoryList(vd.user.Inventory || {});
+    }
+};
 
 // ===== 页面启动入口 =====
 window.addEventListener('DOMContentLoaded', function() {

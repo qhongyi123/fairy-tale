@@ -9,7 +9,7 @@ var CONTROL_PANEL_CONFIG = {
         title: "美化",
         defaultSingle: true,
         items: [
-            { id: "cps1-1", name: "正文美化", desc: "启用正文的美化排版与装饰效果。", enableUids: [ 3 ], disableUids: [] },
+            { id: "cps1-1", name: "正文美化", desc: "启用正文的美化排版与装饰效果。", enableUids: [ 3 ], disableUids: [], defaultChecked: true },
             { id: "cps1-2", name: "纯文字", desc: "使用简洁的纯文字模式，关闭所有美化效果。", enableUids: [ 4 ], disableUids: [] }
         ]
     }
